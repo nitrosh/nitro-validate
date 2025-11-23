@@ -2,25 +2,25 @@
 Nitro Validator - A powerful, standalone, dependency-free data validation library.
 
 Example:
-    from nitro_validator import Validator
+    from nitro_validator import NitroValidator
 
     data = {'email': 'user@example.com', 'age': 25}
     rules = {'email': 'required|email', 'age': 'required|numeric|min:18'}
 
-    validator = Validator()
+    validator = NitroValidator()
     validated = validator.validate(data, rules)
 """
 
 __version__ = "1.0.0"
 
 from .core import (
-    Validator,
-    Rule,
-    RuleRegistry,
-    ValidationError,
-    ValidatorException,
-    RuleNotFoundError,
-    InvalidRuleError,
+    NitroValidator,
+    NitroValidationRule,
+    NitroRuleRegistry,
+    NitroValidationError,
+    NitroValidatorException,
+    NitroRuleNotFoundError,
+    NitroInvalidRuleError,
 )
 
 from .utils import (
@@ -31,40 +31,81 @@ from .utils import (
     EmailRule,
     UrlRule,
     RegexRule,
+    LowercaseRule,
+    UppercaseRule,
+    AlphaDashRule,
+    StartsWithRule,
+    EndsWithRule,
+    ContainsRule,
+    UuidRule,
+    IpRule,
+    Ipv4Rule,
+    Ipv6Rule,
+    JsonRule,
+    SlugRule,
     NumericRule,
     IntegerRule,
     MinRule,
     MaxRule,
     BetweenRule,
+    PositiveRule,
+    NegativeRule,
+    DivisibleByRule,
     SameRule,
     DifferentRule,
     InRule,
     NotInRule,
     BooleanRule,
     DateRule,
+    BeforeRule,
+    AfterRule,
+    DateEqualsRule,
+    DateFormatRule,
+    ConfirmedRule,
+    AcceptedRule,
+    DeclinedRule,
     LengthRule,
     register_builtin_rules,
 )
 
 # Auto-register built-in rules with default registry
-_default_registry = RuleRegistry()
+_default_registry = NitroRuleRegistry()
 register_builtin_rules(_default_registry)
 
-# Override Validator to use the default registry with built-in rules
-_OriginalValidator = Validator
+# Override NitroValidator to use the default registry with built-in rules
+_OriginalNitroValidator = NitroValidator
 
 
-class Validator(_OriginalValidator):
+class NitroValidator(_OriginalNitroValidator):
     """
-    Validator with built-in rules pre-registered.
+    NitroValidator with built-in rules pre-registered.
     """
 
     def __init__(self, registry=None):
         super().__init__(registry or _default_registry)
 
 
+# Provide convenient aliases without "Nitro" prefix
+Validator = NitroValidator
+Rule = NitroValidationRule
+RuleRegistry = NitroRuleRegistry
+ValidationError = NitroValidationError
+ValidatorException = NitroValidatorException
+RuleNotFoundError = NitroRuleNotFoundError
+InvalidRuleError = NitroInvalidRuleError
+
+
 __all__ = [
     '__version__',
+    # Nitro-prefixed classes (primary)
+    'NitroValidator',
+    'NitroValidationRule',
+    'NitroRuleRegistry',
+    'NitroValidationError',
+    'NitroValidatorException',
+    'NitroRuleNotFoundError',
+    'NitroInvalidRuleError',
+    # Convenient aliases (backward compatibility)
     'Validator',
     'Rule',
     'RuleRegistry',
@@ -72,6 +113,7 @@ __all__ = [
     'ValidatorException',
     'RuleNotFoundError',
     'InvalidRuleError',
+    # Built-in rules
     'RequiredRule',
     'OptionalRule',
     'AlphaRule',
@@ -79,17 +121,39 @@ __all__ = [
     'EmailRule',
     'UrlRule',
     'RegexRule',
+    'LowercaseRule',
+    'UppercaseRule',
+    'AlphaDashRule',
+    'StartsWithRule',
+    'EndsWithRule',
+    'ContainsRule',
+    'UuidRule',
+    'IpRule',
+    'Ipv4Rule',
+    'Ipv6Rule',
+    'JsonRule',
+    'SlugRule',
     'NumericRule',
     'IntegerRule',
     'MinRule',
     'MaxRule',
     'BetweenRule',
+    'PositiveRule',
+    'NegativeRule',
+    'DivisibleByRule',
     'SameRule',
     'DifferentRule',
     'InRule',
     'NotInRule',
     'BooleanRule',
     'DateRule',
+    'BeforeRule',
+    'AfterRule',
+    'DateEqualsRule',
+    'DateFormatRule',
+    'ConfirmedRule',
+    'AcceptedRule',
+    'DeclinedRule',
     'LengthRule',
     'register_builtin_rules',
 ]

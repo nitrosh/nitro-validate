@@ -21,15 +21,15 @@ pip install nitro-validator
 - **Custom Messages** - Override default error messages per field or rule
 - **Cross-field Validation** - Validate fields against other fields
 - **Type Safe** - Validates strings, numbers, booleans, dates, and more
-- **Comprehensive Rules** - 18+ built-in validation rules
+- **Comprehensive Rules** - 41+ built-in validation rules
 
 ## Quick Start
 
 ```python
-from nitro_validator import Validator
+from nitro_validator import NitroValidator
 
 # Create a validator instance
-validator = Validator()
+validator = NitroValidator()
 
 # Define your data and rules
 data = {
@@ -50,9 +50,11 @@ rules = {
 try:
     validated_data = validator.validate(data, rules)
     print("Validation passed!", validated_data)
-except ValidationError as e:
+except NitroValidationError as e:
     print("Validation failed:", e.errors)
 ```
+
+**Note:** For convenience, you can also use `Validator` as an alias for `NitroValidator`, and `ValidationError` for `NitroValidationError`.
 
 ## Available Rules
 
@@ -69,9 +71,21 @@ except ValidationError as e:
 |-----------------|------------------------------------|-------------------------------|
 | `alpha`         | Only alphabetic characters         | `'name': 'alpha'`             |
 | `alphanumeric`  | Only alphanumeric characters       | `'username': 'alphanumeric'`  |
+| `alpha_dash`    | Letters, numbers, dashes, underscores | `'slug': 'alpha_dash'`     |
+| `lowercase`     | Only lowercase characters          | `'code': 'lowercase'`         |
+| `uppercase`     | Only uppercase characters          | `'code': 'uppercase'`         |
 | `email`         | Valid email address                | `'email': 'email'`            |
 | `url`           | Valid URL                          | `'website': 'url'`            |
+| `uuid`          | Valid UUID                         | `'id': 'uuid'`                |
+| `ip`            | Valid IP address (v4 or v6)        | `'address': 'ip'`             |
+| `ipv4`          | Valid IPv4 address                 | `'address': 'ipv4'`           |
+| `ipv6`          | Valid IPv6 address                 | `'address': 'ipv6'`           |
+| `json`          | Valid JSON string                  | `'data': 'json'`              |
+| `slug`          | Valid URL slug                     | `'slug': 'slug'`              |
 | `regex:pattern` | Matches regex pattern              | `'code': 'regex:^[A-Z]{3}$'`  |
+| `starts_with:str` | Starts with substring            | `'name': 'starts_with:Mr'`    |
+| `ends_with:str`   | Ends with substring              | `'file': 'ends_with:.pdf'`    |
+| `contains:str`    | Contains substring               | `'text': 'contains:hello'`    |
 
 ### Numeric Rules
 
@@ -79,9 +93,12 @@ except ValidationError as e:
 |----------------|--------------------------------|----------------------------------|
 | `numeric`      | Must be numeric                | `'price': 'numeric'`             |
 | `integer`      | Must be an integer             | `'quantity': 'integer'`          |
+| `positive`     | Must be positive number        | `'amount': 'positive'`           |
+| `negative`     | Must be negative number        | `'deficit': 'negative'`          |
 | `min:value`    | Minimum value or length        | `'age': 'min:18'`                |
 | `max:value`    | Maximum value or length        | `'rating': 'max:5'`              |
 | `between:min,max` | Between two values          | `'score': 'between:0,100'`       |
+| `divisible_by:n`  | Divisible by number         | `'even': 'divisible_by:2'`       |
 
 ### Comparison Rules
 
@@ -100,9 +117,21 @@ except ValidationError as e:
 
 ### Date Rules
 
-| Rule   | Description           | Example                 |
-|--------|-----------------------|-------------------------|
-| `date` | Must be a valid date  | `'birthdate': 'date'`   |
+| Rule              | Description                    | Example                          |
+|-------------------|--------------------------------|----------------------------------|
+| `date`            | Must be a valid date           | `'birthdate': 'date'`            |
+| `before:date`     | Date must be before            | `'start': 'before:2025-12-31'`   |
+| `after:date`      | Date must be after             | `'end': 'after:2024-01-01'`      |
+| `date_equals:date`| Date must equal                | `'today': 'date_equals:2024-11-23'` |
+| `date_format:fmt` | Date must match format         | `'date': 'date_format:%Y-%m-%d'` |
+
+### Convenience Rules
+
+| Rule       | Description                              | Example                  |
+|------------|------------------------------------------|--------------------------|
+| `confirmed`| Matches {field}_confirmation             | `'password': 'confirmed'`|
+| `accepted` | Must be accepted (yes/true/1/on)         | `'terms': 'accepted'`    |
+| `declined` | Must be declined (no/false/0/off)        | `'marketing': 'declined'`|
 
 ### Length Rules
 
@@ -115,9 +144,9 @@ except ValidationError as e:
 ### Basic Validation
 
 ```python
-from nitro_validator import Validator, ValidationError
+from nitro_validator import NitroValidator, NitroValidationError
 
-validator = Validator()
+validator = NitroValidator()
 
 data = {'username': 'john_doe', 'age': '25'}
 rules = {'username': 'required|alphanumeric', 'age': 'required|integer|min:18'}
@@ -125,7 +154,7 @@ rules = {'username': 'required|alphanumeric', 'age': 'required|integer|min:18'}
 try:
     validated = validator.validate(data, rules)
     print(validated)  # {'username': 'john_doe', 'age': '25'}
-except ValidationError as e:
+except NitroValidationError as e:
     print(e.errors)
 ```
 
@@ -190,12 +219,12 @@ except ValidationError as e:
 
 ## Creating Custom Rules
 
-Extend the `Rule` class to create custom validation rules:
+Extend the `NitroValidationRule` class to create custom validation rules:
 
 ```python
-from nitro_validator import Rule, Validator
+from nitro_validator import NitroValidationRule, NitroValidator
 
-class StrongPasswordRule(Rule):
+class StrongPasswordRule(NitroValidationRule):
     """Validate that a password is strong."""
 
     name = "strong_password"
@@ -214,7 +243,7 @@ class StrongPasswordRule(Rule):
 
 
 # Register and use the custom rule
-validator = Validator()
+validator = NitroValidator()
 validator.register_rule(StrongPasswordRule)
 
 data = {'password': 'MyP@ssw0rd!'}
@@ -222,6 +251,8 @@ rules = {'password': 'required|strong_password'}
 
 validated = validator.validate(data, rules)
 ```
+
+**Backward Compatibility:** You can also use `Rule` as an alias for `NitroValidationRule` for convenience.
 
 ## Advanced Usage
 

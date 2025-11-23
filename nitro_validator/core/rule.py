@@ -1,15 +1,15 @@
 """
-Base Rule class for validation rules.
+Base NitroValidationRule class for validation rules.
 """
 
 from typing import Any, Optional
 
 
-class Rule:
+class NitroValidationRule:
     """
     Base class for all validation rules.
 
-    Custom rules should inherit from this class and implement the validate() method.
+    Custom rules should inherit from NitroValidationRule and implement the validate() method.
     """
 
     name = None  # Rule name (e.g., 'required', 'email', 'min')

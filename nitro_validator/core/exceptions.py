@@ -3,12 +3,12 @@ Custom exception classes for nitro-validator.
 """
 
 
-class ValidatorException(Exception):
+class NitroValidatorException(Exception):
     """Base exception for all validator errors."""
     pass
 
 
-class ValidationError(ValidatorException):
+class NitroValidationError(NitroValidatorException):
     """
     Raised when validation fails.
 
@@ -21,11 +21,11 @@ class ValidationError(ValidatorException):
         super().__init__(f"Validation failed: {errors}")
 
 
-class RuleNotFoundError(ValidatorException):
+class NitroRuleNotFoundError(NitroValidatorException):
     """Raised when a validation rule is not found."""
     pass
 
 
-class InvalidRuleError(ValidatorException):
+class NitroInvalidRuleError(NitroValidatorException):
     """Raised when a rule is invalid or improperly defined."""
     pass

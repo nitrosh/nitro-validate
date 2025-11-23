@@ -3,11 +3,11 @@ Rule registry for managing validation rules.
 """
 
 from typing import Dict, Type, Optional
-from .rule import Rule
-from .exceptions import RuleNotFoundError, InvalidRuleError
+from .rule import NitroValidationRule
+from .exceptions import NitroRuleNotFoundError, NitroInvalidRuleError
 
 
-class RuleRegistry:
+class NitroRuleRegistry:
     """
     Registry for storing and retrieving validation rules.
 
@@ -16,26 +16,26 @@ class RuleRegistry:
 
     def __init__(self):
         """Initialize the rule registry."""
-        self._rules: Dict[str, Type[Rule]] = {}
+        self._rules: Dict[str, Type[NitroValidationRule]] = {}
 
-    def register(self, rule_class: Type[Rule], name: Optional[str] = None):
+    def register(self, rule_class: Type[NitroValidationRule], name: Optional[str] = None):
         """
         Register a validation rule.
 
         Args:
-            rule_class: The Rule class to register
+            rule_class: The NitroValidationRule class to register
             name: Optional custom name for the rule (defaults to rule_class.name)
 
         Raises:
-            InvalidRuleError: If the rule class is invalid
+            NitroInvalidRuleError: If the rule class is invalid
         """
-        if not issubclass(rule_class, Rule):
-            raise InvalidRuleError(f"{rule_class} must inherit from Rule")
+        if not issubclass(rule_class, NitroValidationRule):
+            raise NitroInvalidRuleError(f"{rule_class} must inherit from NitroValidationRule")
 
         rule_name = name or rule_class.name
 
         if not rule_name:
-            raise InvalidRuleError(
+            raise NitroInvalidRuleError(
                 f"Rule {rule_class} must have a 'name' attribute or provide a name parameter"
             )
 
@@ -51,7 +51,7 @@ class RuleRegistry:
         if name in self._rules:
             del self._rules[name]
 
-    def get(self, name: str) -> Type[Rule]:
+    def get(self, name: str) -> Type[NitroValidationRule]:
         """
         Get a rule class by name.
 
@@ -59,13 +59,13 @@ class RuleRegistry:
             name: The name of the rule
 
         Returns:
-            The Rule class
+            The NitroValidationRule class
 
         Raises:
-            RuleNotFoundError: If the rule is not found
+            NitroRuleNotFoundError: If the rule is not found
         """
         if name not in self._rules:
-            raise RuleNotFoundError(f"Rule '{name}' not found in registry")
+            raise NitroRuleNotFoundError(f"Rule '{name}' not found in registry")
 
         return self._rules[name]
 
@@ -81,12 +81,12 @@ class RuleRegistry:
         """
         return name in self._rules
 
-    def all(self) -> Dict[str, Type[Rule]]:
+    def all(self) -> Dict[str, Type[NitroValidationRule]]:
         """
         Get all registered rules.
 
         Returns:
-            Dictionary of rule names to Rule classes
+            Dictionary of rule names to NitroValidationRule classes
         """
         return self._rules.copy()
 

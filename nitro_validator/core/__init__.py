@@ -3,21 +3,21 @@ Core components of nitro-validator.
 """
 
 from .exceptions import (
-    ValidatorException,
-    ValidationError,
-    RuleNotFoundError,
-    InvalidRuleError
+    NitroValidatorException,
+    NitroValidationError,
+    NitroRuleNotFoundError,
+    NitroInvalidRuleError
 )
-from .rule import Rule
-from .rule_registry import RuleRegistry
-from .validator import Validator
+from .rule import NitroValidationRule
+from .rule_registry import NitroRuleRegistry
+from .validator import NitroValidator
 
 __all__ = [
-    'ValidatorException',
-    'ValidationError',
-    'RuleNotFoundError',
-    'InvalidRuleError',
-    'Rule',
-    'RuleRegistry',
-    'Validator',
+    'NitroValidatorException',
+    'NitroValidationError',
+    'NitroRuleNotFoundError',
+    'NitroInvalidRuleError',
+    'NitroValidationRule',
+    'NitroRuleRegistry',
+    'NitroValidator',
 ]

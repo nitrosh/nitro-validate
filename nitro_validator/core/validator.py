@@ -1,33 +1,33 @@
 """
-Main Validator class for validating data.
+Main NitroValidator class for validating data.
 """
 
 from typing import Dict, Any, List, Union, Optional, Callable
-from .rule import Rule
-from .rule_registry import RuleRegistry
-from .exceptions import ValidationError, RuleNotFoundError
+from .rule import NitroValidationRule
+from .rule_registry import NitroRuleRegistry
+from .exceptions import NitroValidationError, NitroRuleNotFoundError
 
 
-class Validator:
+class NitroValidator:
     """
     Main validator class for validating data against rules.
 
     Example:
-        validator = Validator()
+        validator = NitroValidator()
         validator.validate(
             {'email': 'user@example.com', 'age': 25},
             {'email': 'required|email', 'age': 'required|numeric|min:18'}
         )
     """
 
-    def __init__(self, registry: Optional[RuleRegistry] = None):
+    def __init__(self, registry: Optional[NitroRuleRegistry] = None):
         """
         Initialize the validator.
 
         Args:
-            registry: Optional custom RuleRegistry instance
+            registry: Optional custom NitroRuleRegistry instance
         """
-        self.registry = registry or RuleRegistry()
+        self.registry = registry or NitroRuleRegistry()
         self.errors: Dict[str, List[str]] = {}
         self.validated_data: Dict[str, Any] = {}
 
@@ -48,7 +48,7 @@ class Validator:
     def validate(
         self,
         data: Dict[str, Any],
-        rules: Dict[str, Union[str, List[Union[str, Rule]]]],
+        rules: Dict[str, Union[str, List[Union[str, NitroValidationRule]]]],
         messages: Optional[Dict[str, Union[str, Dict[str, str]]]] = None
     ) -> Dict[str, Any]:
         """
@@ -63,7 +63,7 @@ class Validator:
             The validated data
 
         Raises:
-            ValidationError: If validation fails
+            NitroValidationError: If validation fails
 
         Example:
             validator.validate(
@@ -102,7 +102,7 @@ class Validator:
                 # Create rule instance if it's a string
                 if isinstance(rule, str):
                     rule_instance = self._create_rule_from_string(rule)
-                elif isinstance(rule, Rule):
+                elif isinstance(rule, NitroValidationRule):
                     rule_instance = rule
                 else:
                     continue
@@ -130,14 +130,14 @@ class Validator:
 
         # Raise exception if there are errors
         if self.errors:
-            raise ValidationError(self.errors)
+            raise NitroValidationError(self.errors)
 
         return self.validated_data
 
     def is_valid(
         self,
         data: Dict[str, Any],
-        rules: Dict[str, Union[str, List[Union[str, Rule]]]],
+        rules: Dict[str, Union[str, List[Union[str, NitroValidationRule]]]],
         messages: Optional[Dict[str, Union[str, Dict[str, str]]]] = None
     ) -> bool:
         """
@@ -154,7 +154,7 @@ class Validator:
         try:
             self.validate(data, rules, messages)
             return True
-        except ValidationError:
+        except NitroValidationError:
             return False
 
     def get_errors(self) -> Dict[str, List[str]]:
@@ -190,18 +190,18 @@ class Validator:
         """
         return [rule.strip() for rule in rules_string.split('|') if rule.strip()]
 
-    def _create_rule_from_string(self, rule_string: str) -> Rule:
+    def _create_rule_from_string(self, rule_string: str) -> NitroValidationRule:
         """
-        Create a Rule instance from a string.
+        Create a NitroValidationRule instance from a string.
 
         Args:
             rule_string: String like "min:5" or "required"
 
         Returns:
-            Rule instance
+            NitroValidationRule instance
 
         Raises:
-            RuleNotFoundError: If the rule is not found
+            NitroRuleNotFoundError: If the rule is not found
         """
         # Parse rule name and arguments
         if ':' in rule_string:
@@ -220,10 +220,10 @@ class Validator:
     @staticmethod
     def make(
         data: Dict[str, Any],
-        rules: Dict[str, Union[str, List[Union[str, Rule]]]],
+        rules: Dict[str, Union[str, List[Union[str, NitroValidationRule]]]],
         messages: Optional[Dict[str, Union[str, Dict[str, str]]]] = None,
-        registry: Optional[RuleRegistry] = None
-    ) -> 'Validator':
+        registry: Optional[NitroRuleRegistry] = None
+    ) -> 'NitroValidator':
         """
         Static factory method to create a validator and validate data in one call.
 
@@ -231,14 +231,14 @@ class Validator:
             data: The data to validate
             rules: Dictionary of field names to validation rules
             messages: Optional custom error messages
-            registry: Optional custom RuleRegistry instance
+            registry: Optional custom NitroRuleRegistry instance
 
         Returns:
-            Validator instance with validation results
+            NitroValidator instance with validation results
 
         Raises:
-            ValidationError: If validation fails
+            NitroValidationError: If validation fails
         """
-        validator = Validator(registry)
+        validator = NitroValidator(registry)
         validator.validate(data, rules, messages)
         return validator
