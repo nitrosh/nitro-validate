@@ -21,7 +21,7 @@ pip install nitro-validator
 - **Custom Messages** - Override default error messages per field or rule
 - **Cross-field Validation** - Validate fields against other fields
 - **Type Safe** - Validates strings, numbers, booleans, dates, and more
-- **Comprehensive Rules** - 41+ built-in validation rules
+- **Comprehensive Rules** - 51+ built-in validation rules
 
 ## Quick Start
 
@@ -82,6 +82,13 @@ except NitroValidationError as e:
 | `ipv6`          | Valid IPv6 address                 | `'address': 'ipv6'`           |
 | `json`          | Valid JSON string                  | `'data': 'json'`              |
 | `slug`          | Valid URL slug                     | `'slug': 'slug'`              |
+| `ascii`         | Only ASCII characters              | `'text': 'ascii'`             |
+| `base64`        | Valid base64 encoding              | `'encoded': 'base64'`         |
+| `hex_color`     | Valid hex color code               | `'color': 'hex_color'`        |
+| `credit_card`   | Valid credit card number           | `'card': 'credit_card'`       |
+| `mac_address`   | Valid MAC address                  | `'mac': 'mac_address'`        |
+| `timezone`      | Valid timezone identifier          | `'tz': 'timezone'`            |
+| `locale`        | Valid locale code                  | `'locale': 'locale'`          |
 | `regex:pattern` | Matches regex pattern              | `'code': 'regex:^[A-Z]{3}$'`  |
 | `starts_with:str` | Starts with substring            | `'name': 'starts_with:Mr'`    |
 | `ends_with:str`   | Ends with substring              | `'file': 'ends_with:.pdf'`    |
@@ -138,6 +145,14 @@ except NitroValidationError as e:
 | Rule           | Description         | Example                     |
 |----------------|---------------------|-----------------------------|
 | `length:value` | Exact length        | `'zip_code': 'length:5'`    |
+
+### Collection Rules
+
+| Rule       | Description                        | Example                     |
+|------------|------------------------------------|-----------------------------|
+| `array`    | Must be a list or tuple            | `'items': 'array'`          |
+| `size:n`   | Exact size (length)                | `'tags': 'size:3'`          |
+| `distinct` | Array must have unique values      | `'ids': 'distinct'`         |
 
 ## Usage Examples
 

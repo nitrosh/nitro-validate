@@ -975,3 +975,263 @@ class LengthRule(NitroValidationRule):
             return len(value) == target_length
 
         return False
+
+
+# ============================================================================
+# String Content Rules
+# ============================================================================
+
+class AsciiRule(NitroValidationRule):
+    """Validate that a field contains only ASCII characters."""
+
+    name = "ascii"
+    message = "The {field} field must contain only ASCII characters."
+
+    def validate(self, field: str, value: Any, data: dict) -> bool:
+        if value is None or value == '':
+            return True
+        if not isinstance(value, str):
+            return False
+        try:
+            value.encode('ascii')
+            return True
+        except UnicodeEncodeError:
+            return False
+
+
+class Base64Rule(NitroValidationRule):
+    """Validate that a field is valid base64 encoding."""
+
+    name = "base64"
+    message = "The {field} field must be valid base64 encoding."
+
+    def validate(self, field: str, value: Any, data: dict) -> bool:
+        if value is None or value == '':
+            return True
+        if not isinstance(value, str):
+            return False
+
+        import base64
+
+        try:
+            # Try to decode the base64 string
+            decoded = base64.b64decode(value, validate=True)
+            # Try to encode it back and compare
+            encoded = base64.b64encode(decoded).decode('ascii')
+            # Remove potential padding differences
+            return value.rstrip('=') == encoded.rstrip('=')
+        except Exception:
+            return False
+
+
+class HexColorRule(NitroValidationRule):
+    """Validate that a field is a valid hex color code."""
+
+    name = "hex_color"
+    message = "The {field} field must be a valid hex color (e.g., #fff or #ffffff)."
+
+    PATTERN = re.compile(r'^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$')
+
+    def validate(self, field: str, value: Any, data: dict) -> bool:
+        if value is None or value == '':
+            return True
+        if not isinstance(value, str):
+            return False
+        return bool(self.PATTERN.match(value))
+
+
+class CreditCardRule(NitroValidationRule):
+    """Validate that a field is a valid credit card number using Luhn algorithm."""
+
+    name = "credit_card"
+    message = "The {field} field must be a valid credit card number."
+
+    def validate(self, field: str, value: Any, data: dict) -> bool:
+        if value is None or value == '':
+            return True
+        if not isinstance(value, str):
+            return False
+
+        # Remove spaces and dashes
+        card_number = value.replace(' ', '').replace('-', '')
+
+        # Check if it contains only digits
+        if not card_number.isdigit():
+            return False
+
+        # Credit cards are typically 13-19 digits
+        if len(card_number) < 13 or len(card_number) > 19:
+            return False
+
+        # Luhn algorithm
+        def luhn_checksum(card_num):
+            def digits_of(n):
+                return [int(d) for d in str(n)]
+
+            digits = digits_of(card_num)
+            odd_digits = digits[-1::-2]
+            even_digits = digits[-2::-2]
+            checksum = sum(odd_digits)
+            for d in even_digits:
+                checksum += sum(digits_of(d * 2))
+            return checksum % 10
+
+        return luhn_checksum(card_number) == 0
+
+
+class MacAddressRule(NitroValidationRule):
+    """Validate that a field is a valid MAC address."""
+
+    name = "mac_address"
+    message = "The {field} field must be a valid MAC address."
+
+    # Supports formats: AA:BB:CC:DD:EE:FF, AA-BB-CC-DD-EE-FF, AABBCCDDEEFF
+    PATTERNS = [
+        re.compile(r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'),  # With : or -
+        re.compile(r'^[0-9A-Fa-f]{12}$')  # Without separator
+    ]
+
+    def validate(self, field: str, value: Any, data: dict) -> bool:
+        if value is None or value == '':
+            return True
+        if not isinstance(value, str):
+            return False
+
+        return any(pattern.match(value) for pattern in self.PATTERNS)
+
+
+# ============================================================================
+# Collection Rules
+# ============================================================================
+
+class ArrayRule(NitroValidationRule):
+    """Validate that a field is an array/list."""
+
+    name = "array"
+    message = "The {field} field must be an array."
+
+    def validate(self, field: str, value: Any, data: dict) -> bool:
+        if value is None or value == '':
+            return True
+        return isinstance(value, (list, tuple))
+
+
+class SizeRule(NitroValidationRule):
+    """Validate that a field has an exact size (length for strings, size for collections, value for numbers)."""
+
+    name = "size"
+    message = "The {field} field must be exactly {0}."
+
+    def validate(self, field: str, value: Any, data: dict) -> bool:
+        if value is None or value == '':
+            return True
+
+        if not self.args:
+            return False
+
+        target_size = self.args[0]
+
+        # Convert string to appropriate type
+        if isinstance(target_size, str):
+            if '.' in target_size:
+                target_size = float(target_size)
+            else:
+                target_size = int(target_size)
+
+        # For numbers, check the value itself
+        if isinstance(value, (int, float)):
+            return value == target_size
+
+        # For strings and collections, check the length
+        if isinstance(value, (str, list, dict, tuple)):
+            return len(value) == target_size
+
+        return False
+
+
+class DistinctRule(NitroValidationRule):
+    """Validate that an array contains only unique values."""
+
+    name = "distinct"
+    message = "The {field} field must contain only unique values."
+
+    def validate(self, field: str, value: Any, data: dict) -> bool:
+        if value is None or value == '':
+            return True
+
+        if not isinstance(value, (list, tuple)):
+            return False
+
+        # Check if all values are unique
+        try:
+            return len(value) == len(set(value))
+        except TypeError:
+            # If values are not hashable (like dicts), compare manually
+            seen = []
+            for item in value:
+                if item in seen:
+                    return False
+                seen.append(item)
+            return True
+
+
+# ============================================================================
+# Advanced String Rules
+# ============================================================================
+
+class TimezoneRule(NitroValidationRule):
+    """Validate that a field is a valid timezone identifier."""
+
+    name = "timezone"
+    message = "The {field} field must be a valid timezone."
+
+    def validate(self, field: str, value: Any, data: dict) -> bool:
+        if value is None or value == '':
+            return True
+        if not isinstance(value, str):
+            return False
+
+        try:
+            from datetime import timezone as dt_timezone
+            import zoneinfo
+            # Try to get the timezone
+            zoneinfo.ZoneInfo(value)
+            return True
+        except Exception:
+            # Fallback: check common timezone patterns
+            # Format: Continent/City or UTC offset
+            timezone_pattern = re.compile(
+                r'^(UTC|GMT|[A-Z][a-z]+/[A-Z][a-z_]+(/[A-Z][a-z_]+)?|[+-]\d{2}:\d{2})$'
+            )
+            return bool(timezone_pattern.match(value))
+
+
+class LocaleRule(NitroValidationRule):
+    """Validate that a field is a valid locale code."""
+
+    name = "locale"
+    message = "The {field} field must be a valid locale code."
+
+    # Common locale pattern: en_US, en-US, en, pt_BR, etc.
+    PATTERN = re.compile(r'^[a-z]{2,3}([_-][A-Z]{2})?$')
+
+    def validate(self, field: str, value: Any, data: dict) -> bool:
+        if value is None or value == '':
+            return True
+        if not isinstance(value, str):
+            return False
+
+        # Check pattern
+        if not self.PATTERN.match(value):
+            return False
+
+        # Try to validate with locale module
+        try:
+            import locale as locale_module
+            # Normalize the locale string
+            normalized = value.replace('-', '_')
+            # Just check if it follows valid format
+            # Common locales have 2-letter language code, optionally with 2-letter country code
+            return True
+        except Exception:
+            return False

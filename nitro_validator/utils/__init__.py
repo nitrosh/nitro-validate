@@ -24,6 +24,13 @@ from .rules import (
     Ipv6Rule,
     JsonRule,
     SlugRule,
+    AsciiRule,
+    Base64Rule,
+    HexColorRule,
+    CreditCardRule,
+    MacAddressRule,
+    TimezoneRule,
+    LocaleRule,
     # Numeric rules
     NumericRule,
     IntegerRule,
@@ -52,6 +59,10 @@ from .rules import (
     DeclinedRule,
     # Length rules
     LengthRule,
+    # Collection rules
+    ArrayRule,
+    SizeRule,
+    DistinctRule,
 )
 
 __all__ = [
@@ -74,6 +85,13 @@ __all__ = [
     'Ipv6Rule',
     'JsonRule',
     'SlugRule',
+    'AsciiRule',
+    'Base64Rule',
+    'HexColorRule',
+    'CreditCardRule',
+    'MacAddressRule',
+    'TimezoneRule',
+    'LocaleRule',
     'NumericRule',
     'IntegerRule',
     'MinRule',
@@ -96,6 +114,9 @@ __all__ = [
     'AcceptedRule',
     'DeclinedRule',
     'LengthRule',
+    'ArrayRule',
+    'SizeRule',
+    'DistinctRule',
     'register_builtin_rules',
 ]
 
@@ -127,6 +148,13 @@ def register_builtin_rules(registry):
         Ipv6Rule,
         JsonRule,
         SlugRule,
+        AsciiRule,
+        Base64Rule,
+        HexColorRule,
+        CreditCardRule,
+        MacAddressRule,
+        TimezoneRule,
+        LocaleRule,
         NumericRule,
         IntegerRule,
         MinRule,
@@ -149,6 +177,9 @@ def register_builtin_rules(registry):
         AcceptedRule,
         DeclinedRule,
         LengthRule,
+        ArrayRule,
+        SizeRule,
+        DistinctRule,
     ]
 
     for rule in rules:
