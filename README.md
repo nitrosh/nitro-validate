@@ -1,4 +1,4 @@
-# Nitro Validator
+# Nitro Validate
 
 A powerful, standalone, dependency-free data validation library for Python with extensible rules and a clean, intuitive API.
 
