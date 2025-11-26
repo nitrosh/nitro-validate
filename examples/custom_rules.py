@@ -27,7 +27,7 @@ class StrongPasswordRule(Rule):
         has_upper = any(c.isupper() for c in value)
         has_lower = any(c.islower() for c in value)
         has_digit = any(c.isdigit() for c in value)
-        has_symbol = any(c in '!@#$%^&*()_+-=[]{}|;:,.<>?' for c in value)
+        has_symbol = any(c in "!@#$%^&*()_+-=[]{}|;:,.<>?" for c in value)
 
         return has_upper and has_lower and has_digit and has_symbol
 
@@ -59,7 +59,8 @@ class UsernameRule(Rule):
             return False
 
         import re
-        return bool(re.match(r'^[a-zA-Z][a-zA-Z0-9_-]*$', value))
+
+        return bool(re.match(r"^[a-zA-Z][a-zA-Z0-9_-]*$", value))
 
 
 class PhoneNumberRule(Rule):
@@ -73,8 +74,9 @@ class PhoneNumberRule(Rule):
             return True
 
         import re
+
         # Simple phone number pattern
-        pattern = r'^\+?[1-9]\d{0,3}[-.\s]?\(?\d{1,4}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9}$'
+        pattern = r"^\+?[1-9]\d{0,3}[-.\s]?\(?\d{1,4}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9}$"
         return bool(re.match(pattern, value))
 
 
@@ -90,16 +92,12 @@ def example_custom_rule():
     validator.register_rule(PhoneNumberRule)
 
     # Test with valid data
-    data = {
-        'username': 'john_doe',
-        'password': 'MyP@ssw0rd!',
-        'phone': '+1-555-123-4567'
-    }
+    data = {"username": "john_doe", "password": "MyP@ssw0rd!", "phone": "+1-555-123-4567"}
 
     rules = {
-        'username': 'required|username',
-        'password': 'required|strong_password',
-        'phone': 'required|phone'
+        "username": "required|username",
+        "password": "required|strong_password",
+        "phone": "required|phone",
     }
 
     try:
@@ -118,8 +116,8 @@ def example_weak_password():
     validator = Validator()
     validator.register_rule(StrongPasswordRule)
 
-    data = {'password': 'weakpass'}
-    rules = {'password': 'required|strong_password'}
+    data = {"password": "weakpass"}
+    rules = {"password": "required|strong_password"}
 
     try:
         validator.validate(data, rules)
@@ -140,15 +138,15 @@ def example_invalid_username():
 
     # Test various invalid usernames
     test_cases = [
-        ('1invalid', 'starts with number'),
-        ('ab', 'too short'),
-        ('this-username-is-way-too-long-to-be-valid', 'too long'),
-        ('user@name', 'contains invalid character'),
+        ("1invalid", "starts with number"),
+        ("ab", "too short"),
+        ("this-username-is-way-too-long-to-be-valid", "too long"),
+        ("user@name", "contains invalid character"),
     ]
 
     for username, reason in test_cases:
-        data = {'username': username}
-        rules = {'username': 'username'}
+        data = {"username": username}
+        rules = {"username": "username"}
 
         try:
             validator.validate(data, rules)
@@ -159,7 +157,7 @@ def example_invalid_username():
     print()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     example_custom_rule()
     example_weak_password()
     example_invalid_username()

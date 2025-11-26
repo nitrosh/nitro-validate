@@ -5,6 +5,7 @@ Custom exception classes for nitro-validator.
 
 class NitroValidatorException(Exception):
     """Base exception for all validator errors."""
+
     pass
 
 
@@ -23,9 +24,11 @@ class NitroValidationError(NitroValidatorException):
 
 class NitroRuleNotFoundError(NitroValidatorException):
     """Raised when a validation rule is not found."""
+
     pass
 
 
 class NitroInvalidRuleError(NitroValidatorException):
     """Raised when a rule is invalid or improperly defined."""
+
     pass

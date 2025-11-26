@@ -2,10 +2,10 @@
 Main NitroValidator class for validating data.
 """
 
-from typing import Dict, Any, List, Union, Optional, Callable
+from typing import Dict, Any, List, Union, Optional
 from .rule import NitroValidationRule
 from .rule_registry import NitroRuleRegistry
-from .exceptions import NitroValidationError, NitroRuleNotFoundError
+from .exceptions import NitroValidationError
 
 
 class NitroValidator:
@@ -49,7 +49,7 @@ class NitroValidator:
         self,
         data: Dict[str, Any],
         rules: Dict[str, Union[str, List[Union[str, NitroValidationRule]]]],
-        messages: Optional[Dict[str, Union[str, Dict[str, str]]]] = None
+        messages: Optional[Dict[str, Union[str, Dict[str, str]]]] = None,
     ) -> Dict[str, Any]:
         """
         Validate data against rules.
@@ -138,7 +138,7 @@ class NitroValidator:
         self,
         data: Dict[str, Any],
         rules: Dict[str, Union[str, List[Union[str, NitroValidationRule]]]],
-        messages: Optional[Dict[str, Union[str, Dict[str, str]]]] = None
+        messages: Optional[Dict[str, Union[str, Dict[str, str]]]] = None,
     ) -> bool:
         """
         Check if data is valid without raising an exception.
@@ -188,7 +188,7 @@ class NitroValidator:
         Returns:
             List of rule strings
         """
-        return [rule.strip() for rule in rules_string.split('|') if rule.strip()]
+        return [rule.strip() for rule in rules_string.split("|") if rule.strip()]
 
     def _create_rule_from_string(self, rule_string: str) -> NitroValidationRule:
         """
@@ -204,9 +204,9 @@ class NitroValidator:
             NitroRuleNotFoundError: If the rule is not found
         """
         # Parse rule name and arguments
-        if ':' in rule_string:
-            rule_name, args_string = rule_string.split(':', 1)
-            args = [arg.strip() for arg in args_string.split(',')]
+        if ":" in rule_string:
+            rule_name, args_string = rule_string.split(":", 1)
+            args = [arg.strip() for arg in args_string.split(",")]
         else:
             rule_name = rule_string
             args = []
@@ -217,15 +217,16 @@ class NitroValidator:
         # Create and return rule instance
         return rule_class(*args)
 
-    @staticmethod
+    @classmethod
     def make(
+        cls,
         data: Dict[str, Any],
         rules: Dict[str, Union[str, List[Union[str, NitroValidationRule]]]],
         messages: Optional[Dict[str, Union[str, Dict[str, str]]]] = None,
-        registry: Optional[NitroRuleRegistry] = None
-    ) -> 'NitroValidator':
+        registry: Optional[NitroRuleRegistry] = None,
+    ) -> "NitroValidator":
         """
-        Static factory method to create a validator and validate data in one call.
+        Factory method to create a validator and validate data in one call.
 
         Args:
             data: The data to validate
@@ -239,6 +240,6 @@ class NitroValidator:
         Raises:
             NitroValidationError: If validation fails
         """
-        validator = NitroValidator(registry)
+        validator = cls(registry)
         validator.validate(data, rules, messages)
         return validator

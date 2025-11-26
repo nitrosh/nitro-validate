@@ -11,16 +11,12 @@ def example_basic_validation():
 
     validator = Validator()
 
-    data = {
-        'username': 'john_doe',
-        'email': 'john@example.com',
-        'age': 25
-    }
+    data = {"username": "john_doe", "email": "john@example.com", "age": 25}
 
     rules = {
-        'username': 'required|alphanumeric',
-        'email': 'required|email',
-        'age': 'required|numeric|min:18'
+        "username": "required|alphanumeric",
+        "email": "required|email",
+        "age": "required|numeric|min:18",
     }
 
     try:
@@ -38,15 +34,9 @@ def example_validation_failure():
 
     validator = Validator()
 
-    data = {
-        'email': 'not-an-email',
-        'age': 15
-    }
+    data = {"email": "not-an-email", "age": 15}
 
-    rules = {
-        'email': 'required|email',
-        'age': 'required|numeric|min:18'
-    }
+    rules = {"email": "required|email", "age": "required|numeric|min:18"}
 
     try:
         validator.validate(data, rules)
@@ -62,14 +52,14 @@ def example_custom_messages():
 
     validator = Validator()
 
-    data = {'password': '123'}
+    data = {"password": "123"}
 
-    rules = {'password': 'required|min:8'}
+    rules = {"password": "required|min:8"}
 
     messages = {
-        'password': {
-            'required': 'Please enter a password',
-            'min': 'Your password must be at least 8 characters long'
+        "password": {
+            "required": "Please enter a password",
+            "min": "Your password must be at least 8 characters long",
         }
     }
 
@@ -89,8 +79,8 @@ def example_is_valid():
 
     validator = Validator()
 
-    data = {'email': 'test@example.com'}
-    rules = {'email': 'required|email'}
+    data = {"email": "test@example.com"}
+    rules = {"email": "required|email"}
 
     if validator.is_valid(data, rules):
         print("✓ Data is valid!")
@@ -106,15 +96,9 @@ def example_cross_field_validation():
 
     validator = Validator()
 
-    data = {
-        'password': 'mySecretPass123',
-        'password_confirmation': 'mySecretPass123'
-    }
+    data = {"password": "mySecretPass123", "password_confirmation": "mySecretPass123"}
 
-    rules = {
-        'password': 'required|min:8',
-        'password_confirmation': 'required|same:password'
-    }
+    rules = {"password": "required|min:8", "password_confirmation": "required|same:password"}
 
     try:
         validated = validator.validate(data, rules)
@@ -125,7 +109,7 @@ def example_cross_field_validation():
         print(f"Errors: {e.errors}\n")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     example_basic_validation()
     example_validation_failure()
     example_custom_messages()

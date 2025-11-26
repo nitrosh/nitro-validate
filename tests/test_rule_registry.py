@@ -8,6 +8,7 @@ from nitro_validator import RuleRegistry, Rule, RuleNotFoundError, InvalidRuleEr
 
 class DummyRule(Rule):
     """Dummy rule for testing."""
+
     name = "dummy"
 
     def validate(self, field, value, data):
@@ -28,16 +29,16 @@ class TestRuleRegistry:
         registry = RuleRegistry()
         registry.register(DummyRule)
 
-        assert registry.has('dummy')
-        assert registry.get('dummy') == DummyRule
+        assert registry.has("dummy")
+        assert registry.get("dummy") == DummyRule
 
     def test_register_rule_with_custom_name(self):
         """Test registering a rule with custom name."""
         registry = RuleRegistry()
-        registry.register(DummyRule, 'custom_name')
+        registry.register(DummyRule, "custom_name")
 
-        assert registry.has('custom_name')
-        assert registry.get('custom_name') == DummyRule
+        assert registry.has("custom_name")
+        assert registry.get("custom_name") == DummyRule
 
     def test_register_invalid_rule(self):
         """Test registering an invalid rule raises error."""
@@ -65,16 +66,16 @@ class TestRuleRegistry:
         registry = RuleRegistry()
         registry.register(DummyRule)
 
-        assert registry.has('dummy')
-        registry.unregister('dummy')
-        assert not registry.has('dummy')
+        assert registry.has("dummy")
+        registry.unregister("dummy")
+        assert not registry.has("dummy")
 
     def test_get_rule(self):
         """Test getting a rule from registry."""
         registry = RuleRegistry()
         registry.register(DummyRule)
 
-        rule_class = registry.get('dummy')
+        rule_class = registry.get("dummy")
         assert rule_class == DummyRule
 
     def test_get_nonexistent_rule(self):
@@ -82,15 +83,15 @@ class TestRuleRegistry:
         registry = RuleRegistry()
 
         with pytest.raises(RuleNotFoundError):
-            registry.get('nonexistent')
+            registry.get("nonexistent")
 
     def test_has_rule(self):
         """Test checking if rule exists."""
         registry = RuleRegistry()
-        assert not registry.has('dummy')
+        assert not registry.has("dummy")
 
         registry.register(DummyRule)
-        assert registry.has('dummy')
+        assert registry.has("dummy")
 
     def test_all_rules(self):
         """Test getting all registered rules."""
@@ -98,8 +99,8 @@ class TestRuleRegistry:
         registry.register(DummyRule)
 
         all_rules = registry.all()
-        assert 'dummy' in all_rules
-        assert all_rules['dummy'] == DummyRule
+        assert "dummy" in all_rules
+        assert all_rules["dummy"] == DummyRule
 
     def test_clear_registry(self):
         """Test clearing all rules from registry."""

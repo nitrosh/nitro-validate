@@ -3,12 +3,7 @@ Tests for custom exceptions.
 """
 
 import pytest
-from nitro_validator import (
-    ValidatorException,
-    ValidationError,
-    RuleNotFoundError,
-    InvalidRuleError
-)
+from nitro_validator import ValidatorException, ValidationError, RuleNotFoundError, InvalidRuleError
 
 
 class TestExceptions:
@@ -22,11 +17,11 @@ class TestExceptions:
 
     def test_validation_error(self):
         """Test ValidationError with errors dict."""
-        errors = {'email': ['Email is required'], 'age': ['Age must be 18+']}
+        errors = {"email": ["Email is required"], "age": ["Age must be 18+"]}
         exc = ValidationError(errors)
 
         assert exc.errors == errors
-        assert 'email' in str(exc)
+        assert "email" in str(exc)
 
     def test_rule_not_found_error(self):
         """Test RuleNotFoundError."""

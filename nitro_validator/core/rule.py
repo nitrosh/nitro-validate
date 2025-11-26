@@ -2,7 +2,7 @@
 Base NitroValidationRule class for validation rules.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 
 class NitroValidationRule:
@@ -25,7 +25,7 @@ class NitroValidationRule:
         """
         self.args = args
         self.kwargs = kwargs
-        self.custom_message = kwargs.get('message')
+        self.custom_message = kwargs.get("message")
 
     def validate(self, field: str, value: Any, data: dict) -> bool:
         """
@@ -55,13 +55,13 @@ class NitroValidationRule:
 
         # Replace placeholders in message
         replacements = {
-            '{field}': field,
-            '{args}': ', '.join(str(arg) for arg in self.args) if self.args else ''
+            "{field}": field,
+            "{args}": ", ".join(str(arg) for arg in self.args) if self.args else "",
         }
 
         # Add indexed args for specific replacements like {0}, {1}, etc.
         for i, arg in enumerate(self.args):
-            replacements[f'{{{i}}}'] = str(arg)
+            replacements[f"{{{i}}}"] = str(arg)
 
         for placeholder, value in replacements.items():
             message = message.replace(placeholder, value)
@@ -69,5 +69,5 @@ class NitroValidationRule:
         return message
 
     def __repr__(self):
-        args_str = ', '.join(str(arg) for arg in self.args) if self.args else ''
+        args_str = ", ".join(str(arg) for arg in self.args) if self.args else ""
         return f"{self.__class__.__name__}({args_str})"
