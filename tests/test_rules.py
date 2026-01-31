@@ -293,11 +293,11 @@ class TestDateRules:
     """Test date validation rules."""
 
     def test_date_rule_passes(self):
-        """Test DateRule with valid dates."""
+        """Test DateRule with valid dates (ISO 8601 formats only)."""
         rule = DateRule()
         assert rule.validate("field", "2024-01-15", {}) is True
         assert rule.validate("field", "2024/01/15", {}) is True
-        assert rule.validate("field", "15-01-2024", {}) is True
+        assert rule.validate("field", "2024-01-15T10:30:00", {}) is True
         assert rule.validate("field", "", {}) is True
 
         from datetime import datetime

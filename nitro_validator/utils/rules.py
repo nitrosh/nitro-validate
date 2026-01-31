@@ -693,16 +693,16 @@ class DateRule(NitroValidationRule):
         if not isinstance(value, str):
             return False
 
-        # Try to parse common date formats
+        # Try to parse unambiguous date formats (ISO 8601)
+        # Ambiguous formats like %d-%m-%Y and %m-%d-%Y are excluded
+        # to avoid incorrect parsing. Use date_format rule for specific formats.
         date_formats = [
             "%Y-%m-%d",
             "%Y/%m/%d",
-            "%d-%m-%Y",
-            "%d/%m/%Y",
-            "%m-%d-%Y",
-            "%m/%d/%Y",
             "%Y-%m-%d %H:%M:%S",
             "%Y/%m/%d %H:%M:%S",
+            "%Y-%m-%dT%H:%M:%S",
+            "%Y-%m-%dT%H:%M:%SZ",
         ]
 
         for fmt in date_formats:
@@ -750,15 +750,14 @@ class BeforeRule(NitroValidationRule):
         if not isinstance(date_value, str):
             return None
 
+        # Unambiguous ISO 8601 formats only
         date_formats = [
             "%Y-%m-%d",
             "%Y/%m/%d",
-            "%d-%m-%Y",
-            "%d/%m/%Y",
-            "%m-%d-%Y",
-            "%m/%d/%Y",
             "%Y-%m-%d %H:%M:%S",
             "%Y/%m/%d %H:%M:%S",
+            "%Y-%m-%dT%H:%M:%S",
+            "%Y-%m-%dT%H:%M:%SZ",
         ]
 
         for fmt in date_formats:
@@ -805,15 +804,14 @@ class AfterRule(NitroValidationRule):
         if not isinstance(date_value, str):
             return None
 
+        # Unambiguous ISO 8601 formats only
         date_formats = [
             "%Y-%m-%d",
             "%Y/%m/%d",
-            "%d-%m-%Y",
-            "%d/%m/%Y",
-            "%m-%d-%Y",
-            "%m/%d/%Y",
             "%Y-%m-%d %H:%M:%S",
             "%Y/%m/%d %H:%M:%S",
+            "%Y-%m-%dT%H:%M:%S",
+            "%Y-%m-%dT%H:%M:%SZ",
         ]
 
         for fmt in date_formats:
@@ -860,15 +858,14 @@ class DateEqualsRule(NitroValidationRule):
         if not isinstance(date_value, str):
             return None
 
+        # Unambiguous ISO 8601 formats only
         date_formats = [
             "%Y-%m-%d",
             "%Y/%m/%d",
-            "%d-%m-%Y",
-            "%d/%m/%Y",
-            "%m-%d-%Y",
-            "%m/%d/%Y",
             "%Y-%m-%d %H:%M:%S",
             "%Y/%m/%d %H:%M:%S",
+            "%Y-%m-%dT%H:%M:%S",
+            "%Y-%m-%dT%H:%M:%SZ",
         ]
 
         for fmt in date_formats:

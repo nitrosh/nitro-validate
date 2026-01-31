@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nitro-validator"
-version = "1.0.0"
+version = "1.0.1"
 description = "A powerful, standalone, dependency-free data validation library for Python with extensible rules and a clean, intuitive API."
 readme = "README.md"
 authors = [
     { name = "Sean Nieuwoudt", email = "sean@nitro.sh" }
 ]
-license = { text = "MIT" }
+license = { text = "BSD-3-Clause" }
 requires-python = ">=3.7"
 classifiers = [
     "Operating System :: OS Independent",

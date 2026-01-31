@@ -12,6 +12,14 @@ Python `3.7` or higher is required.
 pip install nitro-validator
 ```
 
+## AI Assistant Integration
+
+Add Nitro CLI knowledge to your AI coding assistant:
+
+```bash
+npx skills add nitrosh/nitro-validate
+```
+
 ## Features
 
 - **Simple API** - Easy to learn with minimal boilerplate
@@ -131,6 +139,8 @@ except NitroValidationError as e:
 | `after:date`       | Date must be after     | `'end': 'after:2024-01-01'`         |
 | `date_equals:date` | Date must equal        | `'today': 'date_equals:2024-11-23'` |
 | `date_format:fmt`  | Date must match format | `'date': 'date_format:%Y-%m-%d'`    |
+
+**Note:** The `date`, `before`, `after`, and `date_equals` rules accept unambiguous ISO 8601 formats only (`YYYY-MM-DD`, `YYYY/MM/DD`, and datetime variants like `YYYY-MM-DDTHH:MM:SS`). For specific regional formats like `DD-MM-YYYY` or `MM-DD-YYYY`, use the `date_format` rule with an explicit format string.
 
 ### Convenience Rules
 
@@ -383,10 +393,13 @@ Nitro Validator is inspired by [GUMP](https://github.com/Wixel/GUMP) (a PHP vali
 - Type hints and modern Python features
 - No external dependencies (GUMP requires PHP extensions)
 
+## Ecosystem
+
+- **[nitro-ui](https://github.com/nitrosh/nitro-ui)** - Programmatic HTML generation
+- **[nitro-datastore](https://github.com/nitrosh/nitro-datastore)** - Data loading with dot notation access
+- **[nitro-dispatch](https://github.com/nitrosh/nitro-dispatch)** - Plugin system
+- **[nitro-validate](https://github.com/nitrosh/nitro-validate)** - Data validation
+
 ## License
 
-Please see [LICENSE](LICENSE) for licensing details.
-
-## Author
-
-[github.com/sn](https://github.com/sn)
+This project is licensed under the BSD 3-Clause License. See the [LICENSE](LICENSE) file for details.
