@@ -9,38 +9,66 @@ from .exceptions import NitroValidationError
 
 
 class NitroValidator:
-    """
-    Main validator class for validating data against rules.
+    """Validate a data dict against a per-field rule spec.
+
+    The validator resolves rule names through a :class:`NitroRuleRegistry`,
+    runs every rule for every field, aggregates errors by field, and
+    either returns the validated subset or raises
+    :class:`NitroValidationError`.
+
+    Rules can be expressed two ways — interchangeably within the same
+    call:
+
+    * Pipe-delimited strings: ``"required|email"``, ``"min:18"``,
+      ``"between:1,100"``. Colon separates the rule name from its
+      arguments; commas separate multiple arguments.
+    * Rule instances or classes: ``[RequiredRule(), EmailRule()]``.
+
+    Every :meth:`validate` call resets :attr:`errors` and
+    :attr:`validated_data`, so a single validator can be reused across
+    requests.
 
     Example:
-        validator = NitroValidator()
-        validator.validate(
-            {'email': 'user@example.com', 'age': 25},
-            {'email': 'required|email', 'age': 'required|numeric|min:18'}
-        )
+        >>> from nitro_validator import NitroValidator
+        >>> validator = NitroValidator()
+        >>> validator.validate(
+        ...     {'email': 'user@example.com', 'age': 25},
+        ...     {'email': 'required|email', 'age': 'required|integer|min:18'},
+        ... )
+        {'email': 'user@example.com', 'age': 25}
     """
 
     def __init__(self, registry: Optional[NitroRuleRegistry] = None):
-        """
-        Initialize the validator.
+        """Create a validator backed by ``registry`` (or a fresh empty one).
+
+        When imported from the top-level :mod:`nitro_validator` package,
+        the default registry already contains every built-in rule.
 
         Args:
-            registry: Optional custom NitroRuleRegistry instance
+            registry: A :class:`NitroRuleRegistry` to resolve rule names
+                against. Omit to use the default registry populated with
+                built-in rules.
         """
         self.registry = registry or NitroRuleRegistry()
         self.errors: Dict[str, List[str]] = {}
         self.validated_data: Dict[str, Any] = {}
 
-    def register_rule(self, rule_class: type, name: Optional[str] = None):
-        """
-        Register a custom validation rule.
+    def register_rule(
+        self,
+        rule_class: type,
+        name: Optional[str] = None,
+    ) -> "NitroValidator":
+        """Register a custom rule class on this validator's registry.
 
         Args:
-            rule_class: The Rule class to register
-            name: Optional custom name for the rule
+            rule_class: A :class:`NitroValidationRule` subclass.
+            name: Optional override for the rule name.
 
         Returns:
-            Self for method chaining
+            Self, to allow chaining.
+
+        Example:
+            >>> validator = NitroValidator().register_rule(StrongPasswordRule)
         """
         self.registry.register(rule_class, name)
         return self
@@ -51,38 +79,37 @@ class NitroValidator:
         rules: Dict[str, Union[str, List[Union[str, NitroValidationRule]]]],
         messages: Optional[Dict[str, Union[str, Dict[str, str]]]] = None,
     ) -> Dict[str, Any]:
-        """
-        Validate data against rules.
+        """Run every rule for every field and return the validated data.
+
+        Every rule for every field is evaluated before this method
+        raises, so :attr:`errors` contains *all* failures, not just the
+        first. Fields absent from ``data`` are validated against their
+        rules with a value of ``None`` — most rules pass on ``None``, so
+        pair with ``required`` to enforce presence.
 
         Args:
-            data: The data to validate
-            rules: Dictionary of field names to validation rules
-            messages: Optional custom error messages
+            data: The payload to validate.
+            rules: Per-field rules. Values may be pipe-delimited strings
+                (``"required|email"``) or lists mixing rule strings and
+                rule instances.
+            messages: Optional custom error messages. Each value is
+                either a single string applied to all rules on that
+                field, or a dict keyed by rule name for per-rule
+                overrides.
 
         Returns:
-            The validated data
+            The subset of ``data`` whose fields passed every rule.
 
         Raises:
-            NitroValidationError: If validation fails
+            NitroValidationError: If any field failed any rule; the
+                exception's ``errors`` attribute holds the full report.
 
         Example:
-            validator.validate(
-                {'email': 'test@example.com'},
-                {'email': 'required|email'}
-            )
-
-            # Or with rule objects
-            validator.validate(
-                {'age': 25},
-                {'age': [RequiredRule(), NumericRule(), MinRule(18)]}
-            )
-
-            # Or with custom messages
-            validator.validate(
-                {'email': ''},
-                {'email': 'required|email'},
-                {'email': 'Please provide a valid email address'}
-            )
+            >>> validator.validate(
+            ...     {'email': 'test@example.com'},
+            ...     {'email': 'required|email'},
+            ... )
+            {'email': 'test@example.com'}
         """
         self.errors = {}
         self.validated_data = {}
@@ -140,16 +167,22 @@ class NitroValidator:
         rules: Dict[str, Union[str, List[Union[str, NitroValidationRule]]]],
         messages: Optional[Dict[str, Union[str, Dict[str, str]]]] = None,
     ) -> bool:
-        """
-        Check if data is valid without raising an exception.
+        """Return ``True`` if ``data`` satisfies ``rules``, without raising.
+
+        Wraps :meth:`validate` and swallows :class:`NitroValidationError`.
+        On failure call :meth:`get_errors` to inspect the result.
 
         Args:
-            data: The data to validate
-            rules: Dictionary of field names to validation rules
-            messages: Optional custom error messages
+            data: The payload to validate.
+            rules: Per-field rules (same format as :meth:`validate`).
+            messages: Optional custom error messages.
 
         Returns:
-            True if valid, False otherwise
+            ``True`` if every field passed every rule, ``False`` otherwise.
+
+        Example:
+            >>> if not validator.is_valid(data, rules):
+            ...     print(validator.get_errors())
         """
         try:
             self.validate(data, rules, messages)
@@ -158,20 +191,23 @@ class NitroValidator:
             return False
 
     def get_errors(self) -> Dict[str, List[str]]:
-        """
-        Get validation errors.
+        """Return the errors from the most recent :meth:`validate` call.
 
         Returns:
-            Dictionary of field names to error messages
+            A dict mapping field name to the list of error messages
+            accumulated for that field. Empty when the last validation
+            succeeded.
         """
         return self.errors
 
     def get_errors_flat(self) -> List[str]:
-        """
-        Get all error messages as a flat list.
+        """Return every error message as a flat list, unkeyed by field.
+
+        Preserves the insertion order from :attr:`errors`. Useful when
+        surfacing validation failures as a single bullet list in a UI.
 
         Returns:
-            List of all error messages
+            A flat list of every error message across every field.
         """
         flat_errors = []
         for field_errors in self.errors.values():
@@ -225,20 +261,30 @@ class NitroValidator:
         messages: Optional[Dict[str, Union[str, Dict[str, str]]]] = None,
         registry: Optional[NitroRuleRegistry] = None,
     ) -> "NitroValidator":
-        """
-        Factory method to create a validator and validate data in one call.
+        """Construct a validator and run :meth:`validate` in one call.
+
+        Convenient when you only want a one-shot validation and the
+        validator instance afterwards — e.g. to read
+        :attr:`validated_data`.
 
         Args:
-            data: The data to validate
-            rules: Dictionary of field names to validation rules
-            messages: Optional custom error messages
-            registry: Optional custom NitroRuleRegistry instance
+            data: The payload to validate.
+            rules: Per-field rules (same format as :meth:`validate`).
+            messages: Optional custom error messages.
+            registry: Optional custom :class:`NitroRuleRegistry`.
 
         Returns:
-            NitroValidator instance with validation results
+            The validator instance, with :attr:`validated_data` populated.
 
         Raises:
-            NitroValidationError: If validation fails
+            NitroValidationError: If validation fails.
+
+        Example:
+            >>> validator = NitroValidator.make(
+            ...     {'email': 'a@b.co'}, {'email': 'required|email'},
+            ... )
+            >>> validator.validated_data
+            {'email': 'a@b.co'}
         """
         validator = cls(registry)
         validator.validate(data, rules, messages)
