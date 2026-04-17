@@ -14,7 +14,7 @@ def example_basic_validation():
     data = {"username": "john_doe", "email": "john@example.com", "age": 25}
 
     rules = {
-        "username": "required|alphanumeric",
+        "username": "required|alpha_dash",
         "email": "required|email",
         "age": "required|numeric|min:18",
     }

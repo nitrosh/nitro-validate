@@ -11,7 +11,7 @@ Example:
     validated = validator.validate(data, rules)
 """
 
-__version__ = "1.0.0"
+__version__ = "1.0.2"
 
 from .core import (
     NitroValidator,

@@ -98,7 +98,7 @@ def example_optional_fields():
     validator = Validator()
 
     data = {
-        "name": "John Doe",
+        "name": "John",
         # middle_name is not provided (optional)
         # phone is not provided (optional)
     }
