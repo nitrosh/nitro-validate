@@ -12,13 +12,15 @@ Python `3.7` or higher is required.
 pip install nitro-validator
 ```
 
-## AI Assistant Integration
+### AI Assistant Integration
 
-Add Nitro CLI knowledge to your AI coding assistant:
+Add Nitro Validator knowledge to your AI coding assistant:
 
 ```bash
 npx skills add nitrosh/nitro-validate
 ```
+
+This enables AI assistants like Claude Code to understand Nitro Validator and generate correct validation code.
 
 ## Features
 
@@ -349,6 +351,8 @@ The `examples/` directory contains working examples:
 python examples/basic_usage.py
 python examples/custom_rules.py
 python examples/advanced_validation.py
+python examples/date_validation.py
+python examples/formats.py
 ```
 
 ## Development
@@ -356,8 +360,8 @@ python examples/advanced_validation.py
 ### Setup
 
 ```bash
-git clone https://github.com/nitro/nitro-validator.git
-cd nitro-validator
+git clone https://github.com/nitrosh/nitro-validate.git
+cd nitro-validate
 pip install -e ".[dev]"
 ```
 
@@ -395,10 +399,11 @@ Nitro Validator is inspired by [GUMP](https://github.com/Wixel/GUMP) (a PHP vali
 
 ## Ecosystem
 
-- **[nitro-ui](https://github.com/nitrosh/nitro-ui)** - Programmatic HTML generation
-- **[nitro-datastore](https://github.com/nitrosh/nitro-datastore)** - Data loading with dot notation access
-- **[nitro-dispatch](https://github.com/nitrosh/nitro-dispatch)** - Plugin system
-- **[nitro-validate](https://github.com/nitrosh/nitro-validate)** - Data validation
+- **[nitro-cli](https://github.com/nitrosh/nitro-cli)** - Static site generator that builds sites with Python code
+- **[nitro-ui](https://github.com/nitrosh/nitro-ui)** - Build HTML with Python, not strings
+- **[nitro-datastore](https://github.com/nitrosh/nitro-datastore)** - Schema-free JSON data store with dot notation access
+- **[nitro-dispatch](https://github.com/nitrosh/nitro-dispatch)** - Framework-agnostic plugin system
+- **[nitro-image](https://github.com/nitrosh/nitro-image)** - Fast, friendly image processing for the web
 
 ## License
 
