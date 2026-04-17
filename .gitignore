@@ -69,3 +69,5 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+CLAUDE.md
+.claude.json

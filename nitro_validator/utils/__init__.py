@@ -2,6 +2,8 @@
 Utility functions and built-in rules for nitro-validator.
 """
 
+from ..core.rule_registry import NitroRuleRegistry
+
 from .rules import (
     # Basic rules
     RequiredRule,
@@ -121,12 +123,24 @@ __all__ = [
 ]
 
 
-def register_builtin_rules(registry):
-    """
-    Register all built-in validation rules with a registry.
+def register_builtin_rules(registry: NitroRuleRegistry) -> None:
+    """Register every built-in validation rule onto ``registry``.
+
+    The default registry returned by :class:`NitroValidator()
+    <nitro_validator.NitroValidator>` is already populated with these
+    rules — call this only when you are building a custom registry
+    from scratch and want the built-ins available under their standard
+    names.
 
     Args:
-        registry: RuleRegistry instance to register rules with
+        registry: A :class:`NitroRuleRegistry` instance to mutate.
+
+    Example:
+        >>> from nitro_validator import NitroRuleRegistry, register_builtin_rules
+        >>> registry = NitroRuleRegistry()
+        >>> register_builtin_rules(registry)
+        >>> registry.has("email")
+        True
     """
     rules = [
         RequiredRule,

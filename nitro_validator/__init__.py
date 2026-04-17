@@ -11,7 +11,7 @@ Example:
     validated = validator.validate(data, rules)
 """
 
-__version__ = "1.0.2"
+__version__ = "1.0.3"
 
 from .core import (
     NitroValidator,
@@ -87,11 +87,32 @@ _OriginalNitroValidator = NitroValidator
 
 
 class NitroValidator(_OriginalNitroValidator):
-    """
-    NitroValidator with built-in rules pre-registered.
+    """Validate data against rules, with every built-in rule pre-registered.
+
+    This is the public entry point exported at the top level of the
+    package. It is a thin subclass of
+    :class:`nitro_validator.core.NitroValidator` whose only job is to
+    default the registry to a shared instance pre-populated with all 51+
+    built-in rules. Pass ``registry=`` to opt out of the defaults.
+
+    Example:
+        >>> from nitro_validator import NitroValidator
+        >>> v = NitroValidator()
+        >>> v.validate(
+        ...     {'email': 'a@b.co', 'age': 21},
+        ...     {'email': 'required|email', 'age': 'required|integer|min:18'},
+        ... )
+        {'email': 'a@b.co', 'age': 21}
     """
 
-    def __init__(self, registry=None):
+    def __init__(self, registry: "NitroRuleRegistry" = None):
+        """Create a validator, defaulting to the shared built-in registry.
+
+        Args:
+            registry: A custom :class:`NitroRuleRegistry`. Omit to reuse
+                the module-level registry that already contains every
+                built-in rule.
+        """
         super().__init__(registry or _default_registry)
 
 
