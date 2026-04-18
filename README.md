@@ -2,6 +2,11 @@
 
 A powerful, standalone, dependency-free data validation library for Python with extensible rules and a clean, intuitive API.
 
+[![PyPI](https://img.shields.io/pypi/v/nitro-validate?color=green)](https://pypi.org/project/nitro-validate/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/nitro-validate)](https://pypi.org/project/nitro-validate/)
+[![PyPI - License](https://img.shields.io/pypi/l/nitro-validate)](https://pypi.org/project/nitro-validate/)
+[![image](https://img.shields.io/github/actions/workflow/status/nitrosh/nitro-validate/test.yml?branch=main)](https://github.com/nitrosh/nitro-validate/actions?query=branch%3Amain)
+
 ## Requirements
 
 Python `3.7` or higher is required.
@@ -21,17 +26,6 @@ npx skills add nitrosh/nitro-validate
 ```
 
 This enables AI assistants like Claude Code to understand Nitro Validator and generate correct validation code.
-
-## Features
-
-- **Simple API** - Easy to learn with minimal boilerplate
-- **Zero Dependencies** - No external dependencies required
-- **Extensible** - Create custom validation rules with ease
-- **Clean Syntax** - Pipe-delimited rule strings or rule objects
-- **Custom Messages** - Override default error messages per field or rule
-- **Cross-field Validation** - Validate fields against other fields
-- **Type Safe** - Validates strings, numbers, booleans, dates, and more
-- **Comprehensive Rules** - 51+ built-in validation rules
 
 ## Quick Start
 
@@ -65,6 +59,17 @@ except NitroValidationError as e:
 ```
 
 **Note:** For convenience, you can also use `Validator` as an alias for `NitroValidator`, and `ValidationError` for `NitroValidationError`.
+
+## Features
+
+- **Simple API** - Easy to learn with minimal boilerplate
+- **Zero Dependencies** - No external dependencies required
+- **Extensible** - Create custom validation rules with ease
+- **Clean Syntax** - Pipe-delimited rule strings or rule objects
+- **Custom Messages** - Override default error messages per field or rule
+- **Cross-field Validation** - Validate fields against other fields
+- **Type Safe** - Validates strings, numbers, booleans, dates, and more
+- **Comprehensive Rules** - 51+ built-in validation rules
 
 ## Available Rules
 
