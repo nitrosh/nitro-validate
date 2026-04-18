@@ -2,10 +2,10 @@
 
 A powerful, standalone, dependency-free data validation library for Python with extensible rules and a clean, intuitive API.
 
-[![PyPI](https://img.shields.io/pypi/v/nitro-validate?color=green)](https://pypi.org/project/nitro-validate/)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/nitro-validate)](https://pypi.org/project/nitro-validate/)
-[![PyPI - License](https://img.shields.io/pypi/l/nitro-validate)](https://pypi.org/project/nitro-validate/)
-[![image](https://img.shields.io/github/actions/workflow/status/nitrosh/nitro-validate/test.yml?branch=main)](https://github.com/nitrosh/nitro-validate/actions?query=branch%3Amain)
+[![PyPI](https://img.shields.io/pypi/v/nitro-validator?color=green)](https://pypi.org/project/nitro-validator/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/nitro-validator)](https://pypi.org/project/nitro-validator/)
+[![PyPI - License](https://img.shields.io/pypi/l/nitro-validator)](https://pypi.org/project/nitro-validator/)
+[![image](https://img.shields.io/github/actions/workflow/status/nitrosh/nitro-validator/test.yml?branch=main)](https://github.com/nitrosh/nitro-validate/actions?query=branch%3Amain)
 
 ## Requirements
 
