@@ -11,7 +11,9 @@ Example:
     validated = validator.validate(data, rules)
 """
 
-__version__ = "1.0.3"
+__version__ = "1.0.4"
+
+from typing import Optional
 
 from .core import (
     NitroValidator,
@@ -92,8 +94,11 @@ class NitroValidator(_OriginalNitroValidator):
     This is the public entry point exported at the top level of the
     package. It is a thin subclass of
     :class:`nitro_validator.core.NitroValidator` whose only job is to
-    default the registry to a shared instance pre-populated with all 51+
-    built-in rules. Pass ``registry=`` to opt out of the defaults.
+    default the registry to a fresh copy of the module-level registry,
+    which is pre-populated with all 51+ built-in rules. Each
+    ``NitroValidator()`` therefore gets its own registry, so
+    ``register_rule()`` calls are isolated to that instance. Pass
+    ``registry=`` to supply your own.
 
     Example:
         >>> from nitro_validator import NitroValidator
@@ -105,15 +110,15 @@ class NitroValidator(_OriginalNitroValidator):
         {'email': 'a@b.co', 'age': 21}
     """
 
-    def __init__(self, registry: "NitroRuleRegistry" = None):
-        """Create a validator, defaulting to the shared built-in registry.
+    def __init__(self, registry: Optional["NitroRuleRegistry"] = None):
+        """Create a validator, defaulting to a fresh copy of the built-in registry.
 
         Args:
-            registry: A custom :class:`NitroRuleRegistry`. Omit to reuse
-                the module-level registry that already contains every
-                built-in rule.
+            registry: A custom :class:`NitroRuleRegistry`. Omit to get a
+                fresh registry seeded with every built-in rule; rules
+                you register on this validator will not leak to others.
         """
-        super().__init__(registry or _default_registry)
+        super().__init__(registry if registry is not None else _default_registry.copy())
 
 
 # Provide convenient aliases without "Nitro" prefix

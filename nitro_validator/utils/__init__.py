@@ -128,7 +128,7 @@ def register_builtin_rules(registry: NitroRuleRegistry) -> None:
 
     The default registry returned by :class:`NitroValidator()
     <nitro_validator.NitroValidator>` is already populated with these
-    rules — call this only when you are building a custom registry
+    rules; call this only when you are building a custom registry
     from scratch and want the built-ins available under their standard
     names.
 
