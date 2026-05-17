@@ -92,8 +92,8 @@ def example_date_format():
     validator = Validator()
 
     data = {
-        "uk_date": "15/06/1990",           # DD/MM/YYYY
-        "us_date": "06-15-1990",           # MM-DD-YYYY
+        "uk_date": "15/06/1990",  # DD/MM/YYYY
+        "us_date": "06-15-1990",  # MM-DD-YYYY
         "timestamp": "15 Jun 1990 09:30",  # DD Mon YYYY HH:MM
     }
     rules = {

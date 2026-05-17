@@ -16,7 +16,7 @@ class NitroValidator:
     either returns the validated subset or raises
     :class:`NitroValidationError`.
 
-    Rules can be expressed two ways — interchangeably within the same
+    Rules can be expressed two ways, interchangeably within the same
     call:
 
     * Pipe-delimited strings: ``"required|email"``, ``"min:18"``,
@@ -84,7 +84,7 @@ class NitroValidator:
         Every rule for every field is evaluated before this method
         raises, so :attr:`errors` contains *all* failures, not just the
         first. Fields absent from ``data`` are validated against their
-        rules with a value of ``None`` — most rules pass on ``None``, so
+        rules with a value of ``None``. Most rules pass on ``None``, so
         pair with ``required`` to enforce presence.
 
         Args:
@@ -118,15 +118,12 @@ class NitroValidator:
         for field, field_rules in rules.items():
             value = data.get(field)
 
-            # Parse rules if they're a string
             if isinstance(field_rules, str):
                 parsed_rules = self._parse_rules(field_rules)
             else:
                 parsed_rules = field_rules
 
-            # Validate each rule
             for rule in parsed_rules:
-                # Create rule instance if it's a string
                 if isinstance(rule, str):
                     rule_instance = self._create_rule_from_string(rule)
                 elif isinstance(rule, NitroValidationRule):
@@ -134,28 +131,31 @@ class NitroValidator:
                 else:
                     continue
 
-                # Check if field has custom messages
+                override_message: Optional[str] = None
                 field_messages = messages.get(field, {})
                 if isinstance(field_messages, str):
-                    # Single message for all rules
-                    rule_instance.custom_message = field_messages
+                    override_message = field_messages
                 elif isinstance(field_messages, dict):
-                    # Specific message for this rule
                     rule_name = rule_instance.name or rule_instance.__class__.__name__.lower()
                     if rule_name in field_messages:
-                        rule_instance.custom_message = field_messages[rule_name]
+                        override_message = field_messages[rule_name]
 
-                # Run validation
                 if not rule_instance.validate(field, value, data):
                     if field not in self.errors:
                         self.errors[field] = []
-                    self.errors[field].append(rule_instance.get_message(field))
+                    if override_message is not None:
+                        prior = rule_instance.custom_message
+                        rule_instance.custom_message = override_message
+                        try:
+                            self.errors[field].append(rule_instance.get_message(field))
+                        finally:
+                            rule_instance.custom_message = prior
+                    else:
+                        self.errors[field].append(rule_instance.get_message(field))
 
-            # Add to validated data if no errors
             if field not in self.errors:
                 self.validated_data[field] = value
 
-        # Raise exception if there are errors
         if self.errors:
             raise NitroValidationError(self.errors)
 
@@ -237,9 +237,17 @@ class NitroValidator:
             NitroValidationRule instance
 
         Raises:
-            NitroRuleNotFoundError: If the rule is not found
+            NitroRuleNotFoundError: If the rule is not found.
+            NitroInvalidRuleError: If the string parses as a known rule
+                but with the wrong number of arguments.
+
+        Note:
+            The pipe and comma are used to split rules and arguments
+            respectively, so they cannot appear in rule arguments. Rules
+            that need patterns containing ``|`` or ``,`` (notably
+            ``regex``) must be passed as a rule instance instead of a
+            string, e.g. ``RegexRule(r"^(a|b)$")``.
         """
-        # Parse rule name and arguments
         if ":" in rule_string:
             rule_name, args_string = rule_string.split(":", 1)
             args = [arg.strip() for arg in args_string.split(",")]
@@ -247,10 +255,8 @@ class NitroValidator:
             rule_name = rule_string
             args = []
 
-        # Get rule class from registry
         rule_class = self.registry.get(rule_name)
 
-        # Create and return rule instance
         return rule_class(*args)
 
     @classmethod
@@ -264,7 +270,7 @@ class NitroValidator:
         """Construct a validator and run :meth:`validate` in one call.
 
         Convenient when you only want a one-shot validation and the
-        validator instance afterwards — e.g. to read
+        validator instance afterwards, e.g. to read
         :attr:`validated_data`.
 
         Args:

@@ -124,3 +124,19 @@ class NitroRuleRegistry:
     def clear(self) -> None:
         """Remove every registered rule. Useful for building a registry from scratch."""
         self._rules.clear()
+
+    def copy(self) -> "NitroRuleRegistry":
+        """Return a new registry with the same rule registrations.
+
+        The returned registry is independent: registering or unregistering
+        rules on it does not affect the original. Rule classes themselves
+        are not copied (registries store references to classes, not
+        instances).
+
+        Returns:
+            A new :class:`NitroRuleRegistry` populated with the same
+            name-to-class mappings as this one.
+        """
+        new_registry = NitroRuleRegistry()
+        new_registry._rules = self._rules.copy()
+        return new_registry

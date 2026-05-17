@@ -11,13 +11,13 @@ class NitroValidationRule:
     Subclass this to add a new rule. Set two class attributes and
     implement :meth:`validate`:
 
-    * ``name`` — the string used in pipe-delimited rule syntax
+    * ``name`` - the string used in pipe-delimited rule syntax
       (e.g. ``"required"``, ``"min"``).
-    * ``message`` — the default error template. Placeholders ``{field}``,
+    * ``message`` - the default error template. Placeholders ``{field}``,
       ``{args}``, and positional ``{0}``, ``{1}``, ... are substituted
       by :meth:`get_message`.
 
-    A rule instance carries its positional arguments in ``self.args`` —
+    A rule instance carries its positional arguments in ``self.args`` -
     these come from the colon/comma-delimited tail of a rule string
     (``"between:1,100"`` → ``args == ("1", "100")``), always as strings
     when parsed from a rule string, so cast inside :meth:`validate` if
@@ -58,7 +58,7 @@ class NitroValidationRule:
         """Store the rule's positional and keyword arguments.
 
         Rule strings like ``"between:1,100"`` are parsed into
-        ``*args = ("1", "100")`` — arguments therefore arrive as
+        ``*args = ("1", "100")`` - arguments therefore arrive as
         strings and must be cast inside :meth:`validate`. Pass
         ``message=`` to override the default template for this
         instance only.

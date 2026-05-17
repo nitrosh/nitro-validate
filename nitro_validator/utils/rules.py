@@ -5,8 +5,37 @@ Built-in validation rules for nitro-validator.
 import re
 import uuid as uuid_module
 import json as json_module
-from typing import Any
+from datetime import datetime
+from typing import Any, Optional, Tuple
 from ..core.rule import NitroValidationRule
+
+
+_ISO_DATE_FORMATS: Tuple[str, ...] = (
+    "%Y-%m-%d",
+    "%Y/%m/%d",
+    "%Y-%m-%d %H:%M:%S",
+    "%Y/%m/%d %H:%M:%S",
+    "%Y-%m-%dT%H:%M:%S",
+    "%Y-%m-%dT%H:%M:%SZ",
+)
+
+
+def _parse_iso_date(date_value: Any) -> Optional[datetime]:
+    """Parse a datetime or unambiguous ISO 8601 string. Returns None on failure.
+
+    Regional formats like ``DD-MM-YYYY`` are intentionally not supported -
+    callers needing them must use ``DateFormatRule`` with an explicit format.
+    """
+    if isinstance(date_value, datetime):
+        return date_value
+    if not isinstance(date_value, str):
+        return None
+    for fmt in _ISO_DATE_FORMATS:
+        try:
+            return datetime.strptime(date_value, fmt)
+        except ValueError:
+            continue
+    return None
 
 
 # ============================================================================
@@ -111,22 +140,33 @@ class UrlRule(NitroValidationRule):
 
 
 class RegexRule(NitroValidationRule):
-    """Validate that a field matches a regular expression."""
+    """Validate that a field matches a regular expression.
+
+    The pipe-delimited rule syntax splits on ``|`` and ``,``, so patterns
+    containing those characters cannot be passed as a rule string. Build
+    the rule directly instead, e.g. ``RegexRule(r"^(a|b)$")``.
+    """
 
     name = "regex"
     message = "The {field} field format is invalid."
+
+    def __init__(self, *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)
+        self._compiled = None
+        if self.args:
+            try:
+                self._compiled = re.compile(self.args[0])
+            except re.error:
+                self._compiled = None
 
     def validate(self, field: str, value: Any, data: dict) -> bool:
         if value is None or value == "":
             return True
         if not isinstance(value, str):
             return False
-
-        pattern = self.args[0] if self.args else None
-        if not pattern:
+        if self._compiled is None:
             return False
-
-        return bool(re.match(pattern, value))
+        return bool(self._compiled.match(value))
 
 
 class LowercaseRule(NitroValidationRule):
@@ -252,33 +292,30 @@ class IpRule(NitroValidationRule):
     name = "ip"
     message = "The {field} field must be a valid IP address."
 
+    IPV4_PATTERN = re.compile(
+        r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}"
+        r"(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+    )
+    IPV6_PATTERN = re.compile(
+        r"^(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|"
+        r"([0-9a-fA-F]{1,4}:){1,7}:|"
+        r"([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|"
+        r"([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|"
+        r"([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|"
+        r"([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|"
+        r"([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|"
+        r"[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|"
+        r":((:[0-9a-fA-F]{1,4}){1,7}|:))$"
+    )
+
     def validate(self, field: str, value: Any, data: dict) -> bool:
         if value is None or value == "":
             return True
         if not isinstance(value, str):
             return False
-
-        # Try IPv4
-        ipv4_pattern = re.compile(
-            r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}"
-            r"(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
-        )
-        if ipv4_pattern.match(value):
+        if self.IPV4_PATTERN.match(value):
             return True
-
-        # Try IPv6
-        ipv6_pattern = re.compile(
-            r"^(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|"
-            r"([0-9a-fA-F]{1,4}:){1,7}:|"
-            r"([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|"
-            r"([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|"
-            r"([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|"
-            r"([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|"
-            r"([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|"
-            r"[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|"
-            r":((:[0-9a-fA-F]{1,4}){1,7}|:))$"
-        )
-        return bool(ipv6_pattern.match(value))
+        return bool(self.IPV6_PATTERN.match(value))
 
 
 class Ipv4Rule(NitroValidationRule):
@@ -376,6 +413,9 @@ class NumericRule(NitroValidationRule):
         if value is None or value == "":
             return True
 
+        if isinstance(value, bool):
+            return False
+
         if isinstance(value, (int, float)):
             return True
 
@@ -427,22 +467,21 @@ class MinRule(NitroValidationRule):
 
         min_value = self.args[0] if self.args else 0
 
-        # Convert string to appropriate type
         if isinstance(min_value, str):
             if "." in min_value:
                 min_value = float(min_value)
             else:
                 min_value = int(min_value)
 
-        # Check numeric values
+        if isinstance(value, bool):
+            return False
+
         if isinstance(value, (int, float)):
             return value >= min_value
 
-        # Check string length
         if isinstance(value, str):
             return len(value) >= min_value
 
-        # Check collection size
         if isinstance(value, (list, dict, tuple)):
             return len(value) >= min_value
 
@@ -461,22 +500,21 @@ class MaxRule(NitroValidationRule):
 
         max_value = self.args[0] if self.args else 0
 
-        # Convert string to appropriate type
         if isinstance(max_value, str):
             if "." in max_value:
                 max_value = float(max_value)
             else:
                 max_value = int(max_value)
 
-        # Check numeric values
+        if isinstance(value, bool):
+            return False
+
         if isinstance(value, (int, float)):
             return value <= max_value
 
-        # Check string length
         if isinstance(value, str):
             return len(value) <= max_value
 
-        # Check collection size
         if isinstance(value, (list, dict, tuple)):
             return len(value) <= max_value
 
@@ -499,7 +537,6 @@ class BetweenRule(NitroValidationRule):
         min_value = self.args[0]
         max_value = self.args[1]
 
-        # Convert strings to appropriate types
         if isinstance(min_value, str):
             if "." in min_value:
                 min_value = float(min_value)
@@ -512,15 +549,15 @@ class BetweenRule(NitroValidationRule):
             else:
                 max_value = int(max_value)
 
-        # Check numeric values
+        if isinstance(value, bool):
+            return False
+
         if isinstance(value, (int, float)):
             return min_value <= value <= max_value
 
-        # Check string length
         if isinstance(value, str):
             return min_value <= len(value) <= max_value
 
-        # Check collection size
         if isinstance(value, (list, dict, tuple)):
             return min_value <= len(value) <= max_value
 
@@ -536,6 +573,9 @@ class PositiveRule(NitroValidationRule):
     def validate(self, field: str, value: Any, data: dict) -> bool:
         if value is None or value == "":
             return True
+
+        if isinstance(value, bool):
+            return False
 
         try:
             num_value = float(value) if isinstance(value, str) else value
@@ -554,6 +594,9 @@ class NegativeRule(NitroValidationRule):
         if value is None or value == "":
             return True
 
+        if isinstance(value, bool):
+            return False
+
         try:
             num_value = float(value) if isinstance(value, str) else value
             return isinstance(num_value, (int, float)) and num_value < 0
@@ -562,10 +605,17 @@ class NegativeRule(NitroValidationRule):
 
 
 class DivisibleByRule(NitroValidationRule):
-    """Validate that a field is divisible by a given number."""
+    """Validate that a field is divisible by a given number.
+
+    For float operands the remainder is compared against a small epsilon
+    to avoid spurious failures from binary floating-point representation
+    (e.g. ``1.0 % 0.1`` is not exactly zero).
+    """
 
     name = "divisible_by"
     message = "The {field} field must be divisible by {0}."
+
+    _FLOAT_EPSILON = 1e-9
 
     def validate(self, field: str, value: Any, data: dict) -> bool:
         if value is None or value == "":
@@ -574,12 +624,22 @@ class DivisibleByRule(NitroValidationRule):
         if not self.args:
             return False
 
+        if isinstance(value, bool):
+            return False
+
         try:
             divisor = float(self.args[0]) if isinstance(self.args[0], str) else self.args[0]
             num_value = float(value) if isinstance(value, str) else value
 
             if not isinstance(num_value, (int, float)) or divisor == 0:
                 return False
+
+            if isinstance(num_value, float) or isinstance(divisor, float):
+                remainder = abs(num_value % divisor)
+                return (
+                    remainder < self._FLOAT_EPSILON
+                    or abs(remainder - abs(divisor)) < self._FLOAT_EPSILON
+                )
 
             return num_value % divisor == 0
         except (ValueError, TypeError):
@@ -623,8 +683,37 @@ class DifferentRule(NitroValidationRule):
         return value != other_value
 
 
+def _value_matches_arg(value: Any, args: tuple) -> bool:
+    """Return True if ``value`` matches any entry in ``args``.
+
+    Compares directly first, then falls back to string-vs-numeric
+    matching so that ``1`` matches ``("1", "2", "3")`` (the form rule
+    arguments take when parsed from a rule string).
+    """
+    if value in args:
+        return True
+    if isinstance(value, bool):
+        return False
+    if isinstance(value, (int, float)):
+        if str(value) in args:
+            return True
+        for arg in args:
+            if isinstance(arg, str):
+                try:
+                    if float(arg) == float(value):
+                        return True
+                except ValueError:
+                    continue
+    return False
+
+
 class InRule(NitroValidationRule):
-    """Validate that a field is in a list of values."""
+    """Validate that a field is in a list of values.
+
+    When the rule is parsed from a string (``"in:1,2,3"``) every argument
+    arrives as a string. Numeric values are still matched correctly: an
+    integer ``1`` compares equal to the string ``"1"``.
+    """
 
     name = "in"
     message = "The {field} field must be one of: {args}."
@@ -633,7 +722,7 @@ class InRule(NitroValidationRule):
         if value is None or value == "":
             return True
 
-        return value in self.args
+        return _value_matches_arg(value, self.args)
 
 
 class NotInRule(NitroValidationRule):
@@ -646,7 +735,7 @@ class NotInRule(NitroValidationRule):
         if value is None or value == "":
             return True
 
-        return value not in self.args
+        return not _value_matches_arg(value, self.args)
 
 
 # ============================================================================
@@ -676,7 +765,13 @@ class BooleanRule(NitroValidationRule):
 
 
 class DateRule(NitroValidationRule):
-    """Validate that a field is a valid date."""
+    """Validate that a field is a valid date.
+
+    Only unambiguous ISO 8601 strings (``YYYY-MM-DD``, ``YYYY/MM/DD``,
+    ``YYYY-MM-DDTHH:MM:SS``) are accepted. Regional formats must go
+    through :class:`DateFormatRule` with an explicit ``strptime`` string
+    to avoid locale ambiguity.
+    """
 
     name = "date"
     message = "The {field} field must be a valid date."
@@ -684,35 +779,9 @@ class DateRule(NitroValidationRule):
     def validate(self, field: str, value: Any, data: dict) -> bool:
         if value is None or value == "":
             return True
-
-        from datetime import datetime
-
-        if isinstance(value, datetime):
-            return True
-
-        if not isinstance(value, str):
+        if not isinstance(value, (str, datetime)):
             return False
-
-        # Try to parse unambiguous date formats (ISO 8601)
-        # Ambiguous formats like %d-%m-%Y and %m-%d-%Y are excluded
-        # to avoid incorrect parsing. Use date_format rule for specific formats.
-        date_formats = [
-            "%Y-%m-%d",
-            "%Y/%m/%d",
-            "%Y-%m-%d %H:%M:%S",
-            "%Y/%m/%d %H:%M:%S",
-            "%Y-%m-%dT%H:%M:%S",
-            "%Y-%m-%dT%H:%M:%SZ",
-        ]
-
-        for fmt in date_formats:
-            try:
-                datetime.strptime(value, fmt)
-                return True
-            except ValueError:
-                continue
-
-        return False
+        return _parse_iso_date(value) is not None
 
 
 class BeforeRule(NitroValidationRule):
@@ -724,49 +793,13 @@ class BeforeRule(NitroValidationRule):
     def validate(self, field: str, value: Any, data: dict) -> bool:
         if value is None or value == "":
             return True
-
         if not self.args:
             return False
-
-        # Parse the value date
-        value_date = self._parse_date(value)
-        if not value_date:
+        value_date = _parse_iso_date(value)
+        compare_date = _parse_iso_date(self.args[0])
+        if value_date is None or compare_date is None:
             return False
-
-        # Parse the comparison date
-        compare_date = self._parse_date(self.args[0])
-        if not compare_date:
-            return False
-
         return value_date < compare_date
-
-    def _parse_date(self, date_value):
-        """Helper to parse a date from string or datetime object."""
-        from datetime import datetime
-
-        if isinstance(date_value, datetime):
-            return date_value
-
-        if not isinstance(date_value, str):
-            return None
-
-        # Unambiguous ISO 8601 formats only
-        date_formats = [
-            "%Y-%m-%d",
-            "%Y/%m/%d",
-            "%Y-%m-%d %H:%M:%S",
-            "%Y/%m/%d %H:%M:%S",
-            "%Y-%m-%dT%H:%M:%S",
-            "%Y-%m-%dT%H:%M:%SZ",
-        ]
-
-        for fmt in date_formats:
-            try:
-                return datetime.strptime(date_value, fmt)
-            except ValueError:
-                continue
-
-        return None
 
 
 class AfterRule(NitroValidationRule):
@@ -778,49 +811,13 @@ class AfterRule(NitroValidationRule):
     def validate(self, field: str, value: Any, data: dict) -> bool:
         if value is None or value == "":
             return True
-
         if not self.args:
             return False
-
-        # Parse the value date
-        value_date = self._parse_date(value)
-        if not value_date:
+        value_date = _parse_iso_date(value)
+        compare_date = _parse_iso_date(self.args[0])
+        if value_date is None or compare_date is None:
             return False
-
-        # Parse the comparison date
-        compare_date = self._parse_date(self.args[0])
-        if not compare_date:
-            return False
-
         return value_date > compare_date
-
-    def _parse_date(self, date_value):
-        """Helper to parse a date from string or datetime object."""
-        from datetime import datetime
-
-        if isinstance(date_value, datetime):
-            return date_value
-
-        if not isinstance(date_value, str):
-            return None
-
-        # Unambiguous ISO 8601 formats only
-        date_formats = [
-            "%Y-%m-%d",
-            "%Y/%m/%d",
-            "%Y-%m-%d %H:%M:%S",
-            "%Y/%m/%d %H:%M:%S",
-            "%Y-%m-%dT%H:%M:%S",
-            "%Y-%m-%dT%H:%M:%SZ",
-        ]
-
-        for fmt in date_formats:
-            try:
-                return datetime.strptime(date_value, fmt)
-            except ValueError:
-                continue
-
-        return None
 
 
 class DateEqualsRule(NitroValidationRule):
@@ -832,49 +829,13 @@ class DateEqualsRule(NitroValidationRule):
     def validate(self, field: str, value: Any, data: dict) -> bool:
         if value is None or value == "":
             return True
-
         if not self.args:
             return False
-
-        # Parse the value date
-        value_date = self._parse_date(value)
-        if not value_date:
+        value_date = _parse_iso_date(value)
+        compare_date = _parse_iso_date(self.args[0])
+        if value_date is None or compare_date is None:
             return False
-
-        # Parse the comparison date
-        compare_date = self._parse_date(self.args[0])
-        if not compare_date:
-            return False
-
         return value_date.date() == compare_date.date()
-
-    def _parse_date(self, date_value):
-        """Helper to parse a date from string or datetime object."""
-        from datetime import datetime
-
-        if isinstance(date_value, datetime):
-            return date_value
-
-        if not isinstance(date_value, str):
-            return None
-
-        # Unambiguous ISO 8601 formats only
-        date_formats = [
-            "%Y-%m-%d",
-            "%Y/%m/%d",
-            "%Y-%m-%d %H:%M:%S",
-            "%Y/%m/%d %H:%M:%S",
-            "%Y-%m-%dT%H:%M:%S",
-            "%Y-%m-%dT%H:%M:%SZ",
-        ]
-
-        for fmt in date_formats:
-            try:
-                return datetime.strptime(date_value, fmt)
-            except ValueError:
-                continue
-
-        return None
 
 
 class DateFormatRule(NitroValidationRule):
@@ -886,21 +847,16 @@ class DateFormatRule(NitroValidationRule):
     def validate(self, field: str, value: Any, data: dict) -> bool:
         if value is None or value == "":
             return True
-
         if not self.args:
             return False
-
         if not isinstance(value, str):
             return False
 
-        from datetime import datetime
-
         date_format = self.args[0]
-
         try:
             datetime.strptime(value, date_format)
             return True
-        except ValueError:
+        except (ValueError, re.error):
             return False
 
 
@@ -910,12 +866,20 @@ class DateFormatRule(NitroValidationRule):
 
 
 class ConfirmedRule(NitroValidationRule):
-    """Validate that a field matches its confirmation field (field_confirmation)."""
+    """Validate that a field matches its confirmation field (field_confirmation).
+
+    Skips the check when the field itself is empty: presence is the job
+    of ``required``. Pair with ``required`` if a missing field should
+    fail confirmation.
+    """
 
     name = "confirmed"
     message = "The {field} confirmation does not match."
 
     def validate(self, field: str, value: Any, data: dict) -> bool:
+        if value is None or value == "":
+            return True
+
         confirmation_field = f"{field}_confirmation"
         confirmation_value = data.get(confirmation_field)
 
@@ -1131,18 +1095,18 @@ class SizeRule(NitroValidationRule):
 
         target_size = self.args[0]
 
-        # Convert string to appropriate type
         if isinstance(target_size, str):
             if "." in target_size:
                 target_size = float(target_size)
             else:
                 target_size = int(target_size)
 
-        # For numbers, check the value itself
+        if isinstance(value, bool):
+            return False
+
         if isinstance(value, (int, float)):
             return value == target_size
 
-        # For strings and collections, check the length
         if isinstance(value, (str, list, dict, tuple)):
             return len(value) == target_size
 
@@ -1181,10 +1145,22 @@ class DistinctRule(NitroValidationRule):
 
 
 class TimezoneRule(NitroValidationRule):
-    """Validate that a field is a valid timezone identifier."""
+    """Validate that a field is a valid timezone identifier.
+
+    On Python 3.9+ the canonical IANA database is consulted via
+    :mod:`zoneinfo`. On older interpreters (3.7, 3.8) the rule falls
+    back to a permissive structural regex that accepts ``UTC``, ``GMT``,
+    fixed offsets like ``+02:00``, and ``Area/Location`` zones including
+    ones with digits, mixed case, or extra path segments
+    (e.g. ``America/New_York``, ``Etc/GMT+5``, ``US/Eastern``).
+    """
 
     name = "timezone"
     message = "The {field} field must be a valid timezone."
+
+    _FALLBACK_PATTERN = re.compile(
+        r"^(" r"UTC|GMT" r"|[+-]\d{2}:?\d{2}" r"|[A-Za-z][A-Za-z0-9_+\-]*(/[A-Za-z0-9_+\-]+)+" r")$"
+    )
 
     def validate(self, field: str, value: Any, data: dict) -> bool:
         if value is None or value == "":
@@ -1195,16 +1171,12 @@ class TimezoneRule(NitroValidationRule):
         try:
             import zoneinfo
 
-            # Try to get the timezone
             zoneinfo.ZoneInfo(value)
             return True
+        except ImportError:
+            return bool(self._FALLBACK_PATTERN.match(value))
         except Exception:
-            # Fallback: check common timezone patterns
-            # Format: Continent/City or UTC offset
-            timezone_pattern = re.compile(
-                r"^(UTC|GMT|[A-Z][a-z]+/[A-Z][a-z_]+(/[A-Z][a-z_]+)?|[+-]\d{2}:\d{2})$"
-            )
-            return bool(timezone_pattern.match(value))
+            return False
 
 
 class LocaleRule(NitroValidationRule):
