@@ -11,6 +11,7 @@ from nitro_validator import (
     NitroValidator,
     NitroValidationRule,
     NitroRuleRegistry,
+    NitroInvalidRuleError,
     ValidationError,
 )
 from nitro_validator.utils import (
@@ -114,15 +115,13 @@ class TestValidatorCoverage:
         validator = Validator().register_rule(CustomRule)
         assert validator.registry.has("custom")
 
-    def test_invalid_rule_type_in_list_is_skipped(self):
-        """Test that invalid rule types in rules list are skipped."""
+    @pytest.mark.parametrize("bad_rule", [123, None, object(), dict])
+    def test_invalid_rule_type_in_list_raises(self, bad_rule):
+        """Anything that isn't a rule string, instance or class is rejected."""
         validator = Validator()
-        data = {"field": "test@example.com"}
-        # Include an integer (invalid rule type) in the rules list
-        rules = {"field": [RequiredRule(), 123, None, "email"]}
-        # Should not raise, just skip the invalid rules (123 and None)
-        result = validator.validate(data, rules)
-        assert result == {"field": "test@example.com"}
+        rules = {"field": [RequiredRule(), bad_rule, "email"]}
+        with pytest.raises(NitroInvalidRuleError, match="unsupported rule"):
+            validator.validate({"field": "test@example.com"}, rules)
 
 
 class TestStringRulesNonStringInput:
@@ -150,8 +149,8 @@ class TestStringRulesNonStringInput:
 
     def test_regex_without_pattern(self):
         """Test RegexRule without pattern argument."""
-        rule = RegexRule()
-        assert rule.validate("field", "test", {}) is False
+        with pytest.raises(NitroInvalidRuleError):
+            RegexRule()
 
     def test_lowercase_with_integer(self):
         """Test LowercaseRule with integer input."""
@@ -175,8 +174,8 @@ class TestStringRulesNonStringInput:
 
     def test_starts_with_no_args(self):
         """Test StartsWithRule without arguments."""
-        rule = StartsWithRule()
-        assert rule.validate("field", "Mr. Test", {}) is False
+        with pytest.raises(NitroInvalidRuleError):
+            StartsWithRule()
 
     def test_ends_with_non_string(self):
         """Test EndsWithRule with non-string input."""
@@ -185,8 +184,8 @@ class TestStringRulesNonStringInput:
 
     def test_ends_with_no_args(self):
         """Test EndsWithRule without arguments."""
-        rule = EndsWithRule()
-        assert rule.validate("field", "file.pdf", {}) is False
+        with pytest.raises(NitroInvalidRuleError):
+            EndsWithRule()
 
     def test_contains_non_string(self):
         """Test ContainsRule with non-string input."""
@@ -195,8 +194,8 @@ class TestStringRulesNonStringInput:
 
     def test_contains_no_args(self):
         """Test ContainsRule without arguments."""
-        rule = ContainsRule()
-        assert rule.validate("field", "hello world", {}) is False
+        with pytest.raises(NitroInvalidRuleError):
+            ContainsRule()
 
     def test_uuid_non_string(self):
         """Test UuidRule with non-string input."""
@@ -283,8 +282,8 @@ class TestNumericRulesEdgeCases:
 
     def test_between_missing_args(self):
         """Test BetweenRule with missing arguments."""
-        rule = BetweenRule(1)  # Only one arg
-        assert rule.validate("field", 5, {}) is False
+        with pytest.raises(NitroInvalidRuleError):
+            BetweenRule(1)
 
     def test_between_with_collection(self):
         """Test BetweenRule with collection."""
@@ -321,13 +320,13 @@ class TestNumericRulesEdgeCases:
 
     def test_divisible_by_no_args(self):
         """Test DivisibleByRule without arguments."""
-        rule = DivisibleByRule()
-        assert rule.validate("field", 10, {}) is False
+        with pytest.raises(NitroInvalidRuleError):
+            DivisibleByRule()
 
     def test_divisible_by_division_by_zero(self):
         """Test DivisibleByRule with zero divisor."""
-        rule = DivisibleByRule(0)
-        assert rule.validate("field", 10, {}) is False
+        with pytest.raises(NitroInvalidRuleError):
+            DivisibleByRule(0)
 
     def test_divisible_by_invalid_value(self):
         """Test DivisibleByRule with invalid value."""
@@ -345,13 +344,13 @@ class TestComparisonRulesEdgeCases:
 
     def test_same_no_args(self):
         """Test SameRule without arguments."""
-        rule = SameRule()
-        assert rule.validate("field", "value", {}) is False
+        with pytest.raises(NitroInvalidRuleError):
+            SameRule()
 
     def test_different_no_args(self):
         """Test DifferentRule without arguments."""
-        rule = DifferentRule()
-        assert rule.validate("field", "value", {}) is False
+        with pytest.raises(NitroInvalidRuleError):
+            DifferentRule()
 
     def test_in_with_none(self):
         """Test InRule with None value."""
@@ -379,8 +378,8 @@ class TestDateRulesEdgeCases:
 
     def test_before_no_args(self):
         """Test BeforeRule without arguments."""
-        rule = BeforeRule()
-        assert rule.validate("field", "2024-01-01", {}) is False
+        with pytest.raises(NitroInvalidRuleError):
+            BeforeRule()
 
     def test_before_invalid_value_date(self):
         """Test BeforeRule with invalid value date."""
@@ -389,8 +388,8 @@ class TestDateRulesEdgeCases:
 
     def test_before_invalid_compare_date(self):
         """Test BeforeRule with invalid comparison date."""
-        rule = BeforeRule("not-a-date")
-        assert rule.validate("field", "2024-01-01", {}) is False
+        with pytest.raises(NitroInvalidRuleError):
+            BeforeRule("not-a-date")
 
     def test_before_with_datetime_value(self):
         """Test BeforeRule _parse_date with datetime object."""
@@ -404,8 +403,8 @@ class TestDateRulesEdgeCases:
 
     def test_after_no_args(self):
         """Test AfterRule without arguments."""
-        rule = AfterRule()
-        assert rule.validate("field", "2024-01-01", {}) is False
+        with pytest.raises(NitroInvalidRuleError):
+            AfterRule()
 
     def test_after_invalid_value_date(self):
         """Test AfterRule with invalid value date."""
@@ -414,8 +413,8 @@ class TestDateRulesEdgeCases:
 
     def test_after_invalid_compare_date(self):
         """Test AfterRule with invalid comparison date."""
-        rule = AfterRule("not-a-date")
-        assert rule.validate("field", "2024-01-01", {}) is False
+        with pytest.raises(NitroInvalidRuleError):
+            AfterRule("not-a-date")
 
     def test_after_with_datetime_value(self):
         """Test AfterRule _parse_date with datetime object."""
@@ -429,8 +428,8 @@ class TestDateRulesEdgeCases:
 
     def test_date_equals_no_args(self):
         """Test DateEqualsRule without arguments."""
-        rule = DateEqualsRule()
-        assert rule.validate("field", "2024-01-01", {}) is False
+        with pytest.raises(NitroInvalidRuleError):
+            DateEqualsRule()
 
     def test_date_equals_invalid_value_date(self):
         """Test DateEqualsRule with invalid value date."""
@@ -439,8 +438,8 @@ class TestDateRulesEdgeCases:
 
     def test_date_equals_invalid_compare_date(self):
         """Test DateEqualsRule with invalid comparison date."""
-        rule = DateEqualsRule("not-a-date")
-        assert rule.validate("field", "2024-01-01", {}) is False
+        with pytest.raises(NitroInvalidRuleError):
+            DateEqualsRule("not-a-date")
 
     def test_date_equals_with_datetime_value(self):
         """Test DateEqualsRule _parse_date with datetime object."""
@@ -454,8 +453,8 @@ class TestDateRulesEdgeCases:
 
     def test_date_format_no_args(self):
         """Test DateFormatRule without arguments."""
-        rule = DateFormatRule()
-        assert rule.validate("field", "2024-01-01", {}) is False
+        with pytest.raises(NitroInvalidRuleError):
+            DateFormatRule()
 
     def test_date_format_non_string(self):
         """Test DateFormatRule with non-string input."""
@@ -468,8 +467,8 @@ class TestLengthRulesEdgeCases:
 
     def test_length_no_args(self):
         """Test LengthRule without arguments."""
-        rule = LengthRule()
-        assert rule.validate("field", "test", {}) is False
+        with pytest.raises(NitroInvalidRuleError):
+            LengthRule()
 
     def test_length_with_invalid_type(self):
         """Test LengthRule with invalid type (number)."""
@@ -533,8 +532,8 @@ class TestCollectionRulesEdgeCases:
 
     def test_size_no_args(self):
         """Test SizeRule without arguments."""
-        rule = SizeRule()
-        assert rule.validate("field", [1, 2, 3], {}) is False
+        with pytest.raises(NitroInvalidRuleError):
+            SizeRule()
 
     def test_size_with_float_string_arg(self):
         """Test SizeRule with float string argument."""

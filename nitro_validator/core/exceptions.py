@@ -70,11 +70,14 @@ class NitroRuleNotFoundError(NitroValidatorException):
 
 
 class NitroInvalidRuleError(NitroValidatorException):
-    """Raise when a rule class is malformed or fails registration checks.
+    """Raise when a rule is malformed, misconfigured, or used incorrectly.
 
     Thrown by :meth:`NitroRuleRegistry.register` when the supplied class
     does not inherit from :class:`NitroValidationRule` or lacks a usable
-    ``name`` attribute.
+    ``name`` attribute, by rule constructors when their arguments are
+    missing or invalid (``'min:abc'``, ``'between:1'``, a bad regex), and
+    by :meth:`NitroValidator.validate` when a field's rule list contains
+    something that is not a rule.
     """
 
     pass

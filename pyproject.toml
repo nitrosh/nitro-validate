@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nitro-validator"
-version = "1.0.4"
-description = "A powerful, standalone, dependency-free data validation library for Python with extensible rules and a clean, intuitive API."
+version = "1.1.0"
+description = "Validate Python data with rule strings like 'required|email'. 51 built-in rules, custom rules in a few lines, and no dependencies."
 readme = "README.md"
 authors = [
     { name = "Sean Nieuwoudt", email = "sean@nitro.sh" }

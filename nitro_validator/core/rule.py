@@ -4,6 +4,8 @@ Base NitroValidationRule class for validation rules.
 
 from typing import Any
 
+from .exceptions import NitroInvalidRuleError
+
 
 class NitroValidationRule:
     """Base class for every validation rule in nitro-validator.
@@ -31,6 +33,11 @@ class NitroValidationRule:
     Attributes:
         name: Class-level identifier used by the rule registry.
         message: Class-level default error template.
+        min_args: Minimum number of positional arguments the rule needs.
+            Constructing it with fewer raises :class:`NitroInvalidRuleError`.
+        implies_numeric: Set on rules like ``numeric`` and ``integer``.
+            When any rule on a field sets this, the validator swaps every
+            rule on that field for :meth:`as_numeric`.
         args: Positional arguments the rule was instantiated with.
         kwargs: Keyword arguments (reserved; ``message`` is extracted).
         custom_message: Per-instance override applied by the validator
@@ -53,6 +60,8 @@ class NitroValidationRule:
 
     name = None  # Rule name (e.g., 'required', 'email', 'min')
     message = "The {field} field is invalid."  # Default error message
+    min_args = 0
+    implies_numeric = False
 
     def __init__(self, *args: Any, **kwargs: Any):
         """Store the rule's positional and keyword arguments.
@@ -67,10 +76,29 @@ class NitroValidationRule:
             *args: Positional rule arguments (e.g. min value, pattern).
             **kwargs: Reserved keyword options. ``message`` becomes
                 ``self.custom_message``.
+
+        Raises:
+            NitroInvalidRuleError: If fewer than ``min_args`` arguments
+                were given.
         """
+        if len(args) < self.min_args:
+            raise NitroInvalidRuleError(
+                f"Rule '{self.name or self.__class__.__name__}' needs at least "
+                f"{self.min_args} argument(s), got {len(args)}."
+            )
         self.args = args
         self.kwargs = kwargs
         self.custom_message = kwargs.get("message")
+
+    def as_numeric(self) -> "NitroValidationRule":
+        """Return the rule to run when the field is declared numeric.
+
+        The validator calls this on every rule of a field that also has a
+        rule with ``implies_numeric`` set. Size rules (``min``, ``max``,
+        ``between``, ``size``) return a copy that compares numeric strings
+        by value rather than by length. The default returns ``self``.
+        """
+        return self
 
     def validate(self, field: str, value: Any, data: dict) -> bool:
         """Return ``True`` if ``value`` passes this rule, otherwise ``False``.

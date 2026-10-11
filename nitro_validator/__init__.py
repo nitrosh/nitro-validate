@@ -1,5 +1,5 @@
 """
-Nitro Validator - A powerful, standalone, dependency-free data validation library.
+Nitro Validator: validate Python data with rule strings like 'required|email'.
 
 Example:
     from nitro_validator import NitroValidator
@@ -11,7 +11,7 @@ Example:
     validated = validator.validate(data, rules)
 """
 
-__version__ = "1.0.4"
+__version__ = "1.1.0"
 
 from typing import Optional
 

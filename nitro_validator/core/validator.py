@@ -2,10 +2,13 @@
 Main NitroValidator class for validating data.
 """
 
-from typing import Dict, Any, List, Union, Optional
+import copy
+from typing import Dict, Any, List, Sequence, Type, Union, Optional
 from .rule import NitroValidationRule
 from .rule_registry import NitroRuleRegistry
-from .exceptions import NitroValidationError
+from .exceptions import NitroValidationError, NitroInvalidRuleError
+
+RuleSpec = Union[str, Sequence[Union[str, NitroValidationRule, Type[NitroValidationRule]]]]
 
 
 class NitroValidator:
@@ -22,11 +25,19 @@ class NitroValidator:
     * Pipe-delimited strings: ``"required|email"``, ``"min:18"``,
       ``"between:1,100"``. Colon separates the rule name from its
       arguments; commas separate multiple arguments.
-    * Rule instances or classes: ``[RequiredRule(), EmailRule()]``.
+    * Rule instances or classes: ``[RequiredRule(), EmailRule]``.
 
-    Every :meth:`validate` call resets :attr:`errors` and
-    :attr:`validated_data`, so a single validator can be reused across
-    requests.
+    If a field has ``numeric`` or ``integer``, its ``min``, ``max``,
+    ``between`` and ``size`` rules compare numeric strings by value, so
+    ``"25"`` passes ``"numeric|min:18"``. Without them, strings are
+    measured by length.
+
+    Every :meth:`validate` call replaces :attr:`errors` and
+    :attr:`validated_data`, so a validator can be reused for sequential
+    calls. Those attributes always reflect the most recent call, so don't
+    read them from a validator shared between threads. Use the return
+    value and the raised exception's ``errors`` instead, or give each
+    thread its own validator.
 
     Example:
         >>> from nitro_validator import NitroValidator
@@ -76,7 +87,7 @@ class NitroValidator:
     def validate(
         self,
         data: Dict[str, Any],
-        rules: Dict[str, Union[str, List[Union[str, NitroValidationRule]]]],
+        rules: Dict[str, RuleSpec],
         messages: Optional[Dict[str, Union[str, Dict[str, str]]]] = None,
     ) -> Dict[str, Any]:
         """Run every rule for every field and return the validated data.
@@ -90,8 +101,8 @@ class NitroValidator:
         Args:
             data: The payload to validate.
             rules: Per-field rules. Values may be pipe-delimited strings
-                (``"required|email"``) or lists mixing rule strings and
-                rule instances.
+                (``"required|email"``) or lists mixing rule strings, rule
+                instances, and rule classes.
             messages: Optional custom error messages. Each value is
                 either a single string applied to all rules on that
                 field, or a dict keyed by rule name for per-rule
@@ -103,6 +114,9 @@ class NitroValidator:
         Raises:
             NitroValidationError: If any field failed any rule; the
                 exception's ``errors`` attribute holds the full report.
+            NitroRuleNotFoundError: If a rule string names an unknown rule.
+            NitroInvalidRuleError: If a rule has bad arguments, or a rule
+                list contains something that isn't a rule.
 
         Example:
             >>> validator.validate(
@@ -111,60 +125,77 @@ class NitroValidator:
             ... )
             {'email': 'test@example.com'}
         """
-        self.errors = {}
-        self.validated_data = {}
+        errors: Dict[str, List[str]] = {}
+        validated_data: Dict[str, Any] = {}
         messages = messages or {}
 
         for field, field_rules in rules.items():
             value = data.get(field)
+            field_errors = []
 
-            if isinstance(field_rules, str):
-                parsed_rules = self._parse_rules(field_rules)
+            for rule in self._resolve_rules(field, field_rules):
+                if not rule.validate(field, value, data):
+                    field_errors.append(self._message_for(rule, field, messages.get(field)))
+
+            if field_errors:
+                errors[field] = field_errors
             else:
-                parsed_rules = field_rules
+                validated_data[field] = value
 
-            for rule in parsed_rules:
-                if isinstance(rule, str):
-                    rule_instance = self._create_rule_from_string(rule)
-                elif isinstance(rule, NitroValidationRule):
-                    rule_instance = rule
-                else:
-                    continue
+        self.errors = errors
+        self.validated_data = validated_data
 
-                override_message: Optional[str] = None
-                field_messages = messages.get(field, {})
-                if isinstance(field_messages, str):
-                    override_message = field_messages
-                elif isinstance(field_messages, dict):
-                    rule_name = rule_instance.name or rule_instance.__class__.__name__.lower()
-                    if rule_name in field_messages:
-                        override_message = field_messages[rule_name]
+        if errors:
+            raise NitroValidationError(errors)
 
-                if not rule_instance.validate(field, value, data):
-                    if field not in self.errors:
-                        self.errors[field] = []
-                    if override_message is not None:
-                        prior = rule_instance.custom_message
-                        rule_instance.custom_message = override_message
-                        try:
-                            self.errors[field].append(rule_instance.get_message(field))
-                        finally:
-                            rule_instance.custom_message = prior
-                    else:
-                        self.errors[field].append(rule_instance.get_message(field))
+        return validated_data
 
-            if field not in self.errors:
-                self.validated_data[field] = value
+    def _resolve_rules(
+        self,
+        field: str,
+        field_rules: RuleSpec,
+    ) -> List[NitroValidationRule]:
+        """Turn a field's rule spec into rule instances, ready to run."""
+        rule_list = self._parse_rules(field_rules) if isinstance(field_rules, str) else field_rules
 
-        if self.errors:
-            raise NitroValidationError(self.errors)
+        resolved = []
+        for rule in rule_list:
+            if isinstance(rule, str):
+                resolved.append(self._create_rule_from_string(rule))
+            elif isinstance(rule, NitroValidationRule):
+                resolved.append(rule)
+            elif isinstance(rule, type) and issubclass(rule, NitroValidationRule):
+                resolved.append(rule())
+            else:
+                raise NitroInvalidRuleError(
+                    f"Field '{field}' has an unsupported rule {rule!r}. Use a rule "
+                    "string, a NitroValidationRule instance, or a NitroValidationRule "
+                    "subclass."
+                )
 
-        return self.validated_data
+        if any(rule.implies_numeric for rule in resolved):
+            resolved = [rule.as_numeric() for rule in resolved]
+
+        return resolved
+
+    def _message_for(
+        self,
+        rule: NitroValidationRule,
+        field: str,
+        override: Union[str, Dict[str, str], None],
+    ) -> str:
+        """Render a failing rule's message, applying any caller override."""
+        if isinstance(override, dict):
+            override = override.get(rule.name or rule.__class__.__name__.lower())
+        if isinstance(override, str):
+            rule = copy.copy(rule)
+            rule.custom_message = override
+        return rule.get_message(field)
 
     def is_valid(
         self,
         data: Dict[str, Any],
-        rules: Dict[str, Union[str, List[Union[str, NitroValidationRule]]]],
+        rules: Dict[str, RuleSpec],
         messages: Optional[Dict[str, Union[str, Dict[str, str]]]] = None,
     ) -> bool:
         """Return ``True`` if ``data`` satisfies ``rules``, without raising.
@@ -238,8 +269,8 @@ class NitroValidator:
 
         Raises:
             NitroRuleNotFoundError: If the rule is not found.
-            NitroInvalidRuleError: If the string parses as a known rule
-                but with the wrong number of arguments.
+            NitroInvalidRuleError: If the rule's constructor rejects the
+                arguments (too few, or not the type it expects).
 
         Note:
             The pipe and comma are used to split rules and arguments
@@ -263,7 +294,7 @@ class NitroValidator:
     def make(
         cls,
         data: Dict[str, Any],
-        rules: Dict[str, Union[str, List[Union[str, NitroValidationRule]]]],
+        rules: Dict[str, RuleSpec],
         messages: Optional[Dict[str, Union[str, Dict[str, str]]]] = None,
         registry: Optional[NitroRuleRegistry] = None,
     ) -> "NitroValidator":

@@ -9,8 +9,10 @@ from nitro_validator import (
     Validator,
     NitroValidationRule,
     NitroRuleRegistry,
+    NitroInvalidRuleError,
     ValidationError,
 )
+from nitro_validator.utils import rules as rules_module
 from nitro_validator.utils import (
     RegexRule,
     DateFormatRule,
@@ -32,17 +34,20 @@ from nitro_validator.utils import (
 
 
 class TestRegexRuleSafe:
-    """RegexRule must not leak re.error to callers (#1)."""
+    """A malformed regex is a configuration error, raised when the rule is built."""
 
-    def test_malformed_pattern_returns_false_not_exception(self):
-        rule = RegexRule("[unclosed")
-        assert rule.validate("field", "anything", {}) is False
+    def test_malformed_pattern_raises_invalid_rule_error(self):
+        with pytest.raises(NitroInvalidRuleError, match="invalid pattern"):
+            RegexRule("[unclosed")
 
-    def test_malformed_pattern_via_validator_is_caught(self):
+    def test_malformed_pattern_via_validator_raises(self):
         validator = Validator()
-        rule = RegexRule("(*invalid")
-        ok = validator.is_valid({"x": "abc"}, {"x": [rule]})
-        assert ok is False
+        with pytest.raises(NitroInvalidRuleError):
+            validator.is_valid({"x": "abc"}, {"x": "regex:(*invalid"})
+
+    def test_non_string_pattern_raises(self):
+        with pytest.raises(NitroInvalidRuleError):
+            RegexRule(123)
 
     def test_pattern_compiled_once(self):
         rule = RegexRule(r"^\d+$")
@@ -103,9 +108,17 @@ class TestDateFormatRuleSafe:
 
 
 class TestTimezoneRuleFallbackPath:
-    """Exercise the ImportError fallback that triggers on 3.7/3.8."""
+    """Exercise the structural fallback used when no tz database exists."""
 
-    def test_fallback_used_when_zoneinfo_missing(self, monkeypatch):
+    def test_fallback_used_when_no_zone_database(self, monkeypatch):
+        monkeypatch.setattr(rules_module, "_iana_zones", lambda: None)
+
+        rule = TimezoneRule()
+        assert rule.validate("tz", "America/New_York", {}) is True
+        assert rule.validate("tz", "invalid-timezone", {}) is False
+        assert rule.validate("tz", "+02:00", {}) is False
+
+    def test_iana_zones_none_without_zoneinfo(self, monkeypatch):
         import builtins
 
         real_import = builtins.__import__
@@ -116,14 +129,27 @@ class TestTimezoneRuleFallbackPath:
             return real_import(name, *args, **kwargs)
 
         monkeypatch.setattr(builtins, "__import__", deny_zoneinfo)
+        assert rules_module._iana_zones.__wrapped__() is None
 
+    def test_iana_zones_none_when_database_empty(self, monkeypatch):
+        zoneinfo = pytest.importorskip("zoneinfo")
+        monkeypatch.setattr(zoneinfo, "available_timezones", lambda: set())
+        assert rules_module._iana_zones.__wrapped__() is None
+
+    def test_iana_zones_lists_real_zones(self, monkeypatch):
+        zoneinfo = pytest.importorskip("zoneinfo")
+        monkeypatch.setattr(zoneinfo, "available_timezones", lambda: {"Africa/Johannesburg"})
+        assert rules_module._iana_zones.__wrapped__() == frozenset({"Africa/Johannesburg"})
+
+    def test_database_path_rejects_offsets(self, monkeypatch):
+        monkeypatch.setattr(rules_module, "_iana_zones", lambda: frozenset({"UTC"}))
         rule = TimezoneRule()
-        assert rule.validate("tz", "America/New_York", {}) is True
-        assert rule.validate("tz", "invalid-timezone", {}) is False
+        assert rule.validate("tz", "UTC", {}) is True
+        assert rule.validate("tz", "+02:00", {}) is False
 
 
 class TestTimezoneRuleFallback:
-    """The 3.7/3.8 fallback regex must cover real IANA zone shapes (#5)."""
+    """The fallback regex must cover real IANA zone shapes (#5)."""
 
     @pytest.mark.parametrize(
         "zone",
@@ -137,19 +163,25 @@ class TestTimezoneRuleFallback:
             "Pacific/Honolulu",
             "UTC",
             "GMT",
-            "+02:00",
-            "-0500",
         ],
     )
     def test_fallback_accepts_real_zones(self, zone):
-        assert TimezoneRule._FALLBACK_PATTERN.match(zone) is not None
+        assert TimezoneRule._FALLBACK_PATTERN.fullmatch(zone) is not None
 
     @pytest.mark.parametrize(
         "junk",
-        ["invalid-timezone", "123-456", "Not/A/Real/zone with spaces", ""],
+        [
+            "invalid-timezone",
+            "123-456",
+            "Not/A/Real/zone with spaces",
+            "",
+            "+02:00",
+            "-0500",
+            "UTC\n",
+        ],
     )
     def test_fallback_rejects_junk(self, junk):
-        assert TimezoneRule._FALLBACK_PATTERN.match(junk) is None
+        assert TimezoneRule._FALLBACK_PATTERN.fullmatch(junk) is None
 
 
 class TestInRuleNumericCoercion:

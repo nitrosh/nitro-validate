@@ -44,6 +44,8 @@ Rules are pipe-delimited strings with optional colon-separated arguments:
 'in:admin,user,guest'   # List of values
 ```
 
+Lists of rule objects and rule classes work too: `[RequiredRule, MinRule(18)]`. Bad or missing arguments (`'min:abc'`, `'between:1'`, a `regex` that won't compile) raise `NitroInvalidRuleError` when the rule is built. Patterns containing `|` or `,` must use `RegexRule(...)` directly.
+
 ## Available Rules
 
 ### Basic
@@ -61,8 +63,8 @@ Rules are pipe-delimited strings with optional colon-separated arguments:
 | `lowercase` | Lowercase characters only |
 | `uppercase` | Uppercase characters only |
 | `email` | Valid email address |
-| `url` | Valid URL |
-| `uuid` | Valid UUID |
+| `url` | Valid http/https URL (any TLD, localhost, IPv4, bracketed IPv6, port 1-65535) |
+| `uuid` | UUID in canonical 8-4-4-4-12 form |
 | `ip` | Valid IP address (v4 or v6) |
 | `ipv4` | Valid IPv4 address |
 | `ipv6` | Valid IPv6 address |
@@ -73,7 +75,7 @@ Rules are pipe-delimited strings with optional colon-separated arguments:
 | `hex_color` | Valid hex color (#fff or #ffffff) |
 | `credit_card` | Valid credit card (Luhn algorithm) |
 | `mac_address` | Valid MAC address |
-| `timezone` | Valid timezone identifier |
+| `timezone` | IANA timezone name (fixed offsets like `+02:00` are rejected) |
 | `locale` | Valid locale code (en_US, pt_BR) |
 | `regex:pattern` | Matches regex pattern |
 | `starts_with:str` | Starts with substring |
@@ -83,14 +85,16 @@ Rules are pipe-delimited strings with optional colon-separated arguments:
 ### Numeric
 | Rule | Description |
 |------|-------------|
-| `numeric` | Numeric value (int, float, or numeric string) |
+| `numeric` | Finite int, float, or numeric string (rejects `nan`, `inf`, `1_000`) |
 | `integer` | Integer value |
 | `positive` | Positive number (> 0) |
 | `negative` | Negative number (< 0) |
-| `min:n` | Minimum value (numbers) or length (strings/arrays) |
+| `min:n` | Minimum value (numbers) or length (strings/arrays); see note below |
 | `max:n` | Maximum value (numbers) or length (strings/arrays) |
 | `between:min,max` | Between two values (inclusive) |
 | `divisible_by:n` | Divisible by number |
+
+**Note:** When a field also has `numeric` or `integer`, `min`, `max`, `between` and `size` compare numeric strings by value: `'numeric|min:18'` passes `"25"`. Without them, strings are measured by length.
 
 ### Comparison
 | Rule | Description |
@@ -108,13 +112,13 @@ Rules are pipe-delimited strings with optional colon-separated arguments:
 ### Date
 | Rule | Description |
 |------|-------------|
-| `date` | Valid date (ISO 8601 formats only: YYYY-MM-DD) |
+| `date` | Valid date (`date`/`datetime` objects or ISO 8601 strings) |
 | `before:date` | Date before the given date |
 | `after:date` | Date after the given date |
 | `date_equals:date` | Date equals the given date |
 | `date_format:fmt` | Date matches specific format (e.g., `%Y-%m-%d`) |
 
-**Note:** The `date`, `before`, `after`, and `date_equals` rules only accept ISO 8601 formats (`YYYY-MM-DD`, `YYYY/MM/DD`, `YYYY-MM-DDTHH:MM:SS`). Use `date_format` for regional formats.
+**Note:** `date`, `before`, `after` and `date_equals` accept `date`/`datetime` objects and ISO 8601 strings (`YYYY-MM-DD`, `YYYY/MM/DD`, `YYYY-MM-DDTHH:MM:SS` with optional fractional seconds and `Z` or `+HH:MM` offset). Offsets are converted to UTC before comparing; values without one are treated as UTC. Use `date_format` for regional formats.
 
 ### Convenience
 | Rule | Description |
@@ -127,7 +131,7 @@ Rules are pipe-delimited strings with optional colon-separated arguments:
 | Rule | Description |
 |------|-------------|
 | `length:n` | Exact length (strings) or size (arrays) |
-| `size:n` | Exact size/length/value |
+| `size:n` | Exact value (numbers) or length (strings/arrays) |
 
 ### Collection
 | Rule | Description |
@@ -218,6 +222,8 @@ validator.register_rule(StrongPasswordRule)
 validator.validate(data, {'password': 'required|strong_password'})
 ```
 
+Set `min_args = N` on a rule that needs arguments; building it with fewer raises `NitroInvalidRuleError`.
+
 ## Error Handling
 
 ```python
@@ -235,6 +241,9 @@ validator.get_errors_flat()  # ['error1', 'error2', ...]
 ## Key Points
 
 - All rules pass for `None` or empty string except `required` and `accepted`/`declined`
-- `min`/`max`/`between` check value for numbers, length for strings/arrays
+- `min`/`max`/`between`/`size` check value for numbers, length for strings/arrays, and value for numeric strings when the field has `numeric` or `integer`
 - Date rules require ISO 8601 format; use `date_format` for other formats
+- Format rules match the whole value; a trailing newline fails
+- `validator.errors` reflects the last call only; don't read it from a validator shared across threads
 - Custom rules should return `True` for empty values (let `required` handle presence)
+- `RuleRegistry()` starts empty; call `register_builtin_rules(registry)` to add the built-ins
